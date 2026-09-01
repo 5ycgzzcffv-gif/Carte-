@@ -1,0 +1,6 @@
+{
+  "name": "Carte de points",
+  "description": "Placer des adresses sur une carte, les regrouper par couleur et forme, exporter en PDF ou CSV.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Carte de points</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1c2b28">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Carte">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+<style>
+  :root{
+    --ink:#1c2b28;
+    --paper:#f6f4ee;
+    --line:#c9c2b2;
+    --brick:#a2482f;
+    --brick-dark:#7e3623;
+    --slate:#41564f;
+    --ok:#3f6b4c;
+    --err:#a2482f;
+    --panelw: 360px;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    font-family: "Iowan Old Style","Georgia",serif;
+    background:var(--paper);
+    color:var(--ink);
+    display:flex;
+    flex-direction:column;
+  }
+  header{
+    padding:16px 22px 12px;
+    border-bottom:2px solid var(--ink);
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:6px;
+  }
+  header h1{ font-size:1.3rem; margin:0; font-weight:600; }
+  header .sub{ font-family:"Helvetica Neue",Arial,sans-serif; font-size:0.76rem; color:var(--slate); }
+  #banner{
+    font-family:"Helvetica Neue",Arial,sans-serif;
+    font-size:0.72rem;
+    color:var(--slate);
+    background:#efe9d8;
+    border-bottom:1px solid var(--line);
+    padding:6px 22px;
+  }
+  main{ flex:1; display:flex; min-height:0; }
+  #panel{
+    width:var(--panelw);
+    min-width:300px;
+    max-width:420px;
+    border-right:2px solid var(--ink);
+    display:flex;
+    flex-direction:column;
+    padding:14px;
+    gap:12px;
+    overflow-y:auto;
+    background:var(--paper);
+  }
+  h2.section{
+    font-family:"Helvetica Neue",Arial,sans-serif;
+    font-size:0.72rem;
+    color:var(--slate);
+    text-transform:lowercase;
+    margin:6px 0 0;
+    border-top:1px solid var(--line);
+    padding-top:10px;
+    letter-spacing:0.02em;
+  }
+  #panel > h2.section:first-child{ border-top:none; padding-top:0; }
+  .tabs{ display:flex; gap:6px; }
+  .tab-btn{
+    flex:1;
+    font-family:"Helvetica Neue",Arial,sans-serif;
+    font-size:0.78rem;
+    padding:8px 6px;
+    background:transparent;
+    border:1px solid var(--line);
+    color:var(--slate);
+    cursor:pointer;
+    border-radius:2px;
+  }
+  .tab-btn.active{ background:var(--ink); color:#fff; border-color:var(--ink); }
+  .tabpane{ display:none; flex-direction:column; gap:8px; }
+  .tabpane.active{ display:flex; }
+  label{ font-family:"Helvetica Neue",Arial,sans-serif; font-size:0.72rem; color:var(--slate); }
+  textarea{
+    min-height:120px;
+    resize:vertical;
+    font-family:"Helvetica Neue",Arial,sans-serif;
+    font-size:0.83rem;
+    padding:9px;
+    border:1px solid var(--line);
+    background:#fff;
+    color:var(--ink);
+    border-radius:2px;
+    line-height:1.4;
+  }
+  textarea:focus, select:focus, input:focus{ outline:2px solid var(--brick); outline-offset:1px; }
+  .hint{ font-family:"Helvetica Neue",Arial,sans-serif; font-size:0.68rem; color:var(--slate); line-height:1.4; }
+  input[type=file]{ font-family:"Helvetica Neue",Arial,sans-serif; font-size:0.76rem; }
+  select{
+    font-family:"Helvetica Neue",Arial,sans-serif;
+    font-size:0.78rem;
+    padding:6px;
+    border:1px solid var(--line);
+    background:#fff;
+    color:var(--ink);
+    border-radius:2px;
+  }
+  .mapping-row{ display:flex; align-items:center; gap:8px; justify-content:space-between; }
+  .mapping-row label{ flex:0 0 90px; }
+  .mapping-row select{ flex:1; }
+  .checkbox-row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:4px 0;
+  }
+  .checkbox-row input[type=checkbox]{
+    accent-color:var(--brick);
+    cursor:pointer;
+    width:15px;
+    height:15px;
+    margin:0;
+  }
+  .checkbox-row label{
+    font-family:"Helvetica Neue",Arial,sans-serif;
+    font-size:0.75rem;
+    color:var(--ink);
+    cursor:pointer;
+    user-select:none;
+    line-height:1.3;
+  }
+  button{
+    font-family:"Helvetica Neue",Arial,sans-serif;
+    font-size:0.82rem;
+    padding:9px 12px;
+    background:var(--brick);
+    color:#fff;
+    border:none;
+    border-radius:2px;
+    cursor:pointer;
+    font-weight:600;
+  }
+  button:hover{ background:var(--brick-dark); }
+  button:disabled{ background:#b8b0a0; cursor:not-allowed; }
+  button.secondary{ background:transparent; color:var(--ink); border:1px solid var(--line); }
+  button.secondary:hover{ border-color:var(--ink); background:transparent; }
+  .btn-row{ display:flex; gap:8px; flex-wrap:wrap; }
+  #status{ font-family:"Helvetica Neue",Arial,sans-serif; font-size:0.74rem; color:var(--slate); min-height:1.1em; }
+  #list{ max-height:150px; overflow-y:auto; }
+  .row{
+    font-family:"Helvetica Neue",Arial,sans-serif;
+    font-size:0.76rem;
+    padding:4px 0;
+    border-bottom:1px dotted var(--line);
+    display:flex;
+    gap:6px;
+    align-items:flex-start;
+  }
+  .row .mark{ width:14px; flex-shrink:0; text-align:center; font-weight:700; }
+  .row.ok .mark{ color:var(--ok); }
+  .row.err .mark{ color:var(--err); }
+  .row .txt{ flex:1; word-break:break-word; }
+  #legend{ display:flex; flex-direction:column; gap:6px; }
+  .legend-item{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-family:"Helvetica Neue",Arial,sans-serif;
+    font-size:0.78rem;
+    padding:4px 0;
+  }
+  .legend-item .swatch{ width:22px; height:22px; flex-shrink:0; }
+  .legend-item select.shape-select{ flex:0 0 92px; }
+  .legend-item input[type=color]{ width:32px; height:26px; padding:0; border:1px solid var(--line); border-radius:2px; cursor:pointer; }
+  .legend-item input[type=text]{
+    flex:1;
+    font-family:"Helvetica Neue",Arial,sans-serif;
+    font-size:0.78rem;
+    padding:5px 6px;
+    border:1px solid var(--line);
+    border-radius:2px;
+    color:var(--ink);
+  }
+  #map{ flex:1; min-width:0; }
+  .leaflet-popup-content{ font-family:"Helvetica Neue",Arial,sans-serif; font-size:0.82rem; }
+  .popup-edit{ display:flex; flex-direction:column; gap:5px; min-width:180px; }
+  .popup-edit .current{ font-size:0.82rem; line-height:1.4; }
+  .popup-edit hr{ border:none; border-top:1px solid var(--line); margin:4px 0; }
+  .popup-edit label{ font-size:0.68rem; }
+  .popup-edit input{
+    font-family:"Helvetica Neue",Arial,sans-serif;
+    font-size:0.78rem;
+    padding:5px 6px;
+    border:1px solid var(--line);
+    border-radius:2px;
+  }
+  .popup-edit button{ margin-top:4px; padding:6px 10px; font-size:0.76rem; }
+  .map-label{
+    background:rgba(246,244,238,0.88);
+    border:none;
+    box-shadow:none;
+    font-family:"Iowan Old Style","Georgia",serif;
+    font-style:italic;
+    font-size:0.78rem;
+    color:var(--ink);
+    padding:1px 5px;
+  }
+  .map-label::before{ display:none; }
+  #toggleLabels.active{ background:var(--ink); color:#fff; border-color:var(--ink); }
+  #legendPrint{ display:none; }
+  @media print{
+    header, #banner, #panel{ display:none !important; }
+    main{ display:block; }
+    #map{ width:100vw; height:100vh; }
+    #legendPrint{
+      display:block;
+      position:fixed;
+      bottom:14px;
+      left:14px;
+      z-index:9999;
+      background:rgba(255,255,255,0.92);
+      border:1px solid #1c2b28;
+      padding:10px 12px;
+      font-family:"Helvetica Neue",Arial,sans-serif;
+      font-size:11px;
+      max-width:220px;
+    }
+    #legendPrint .pitem{ display:flex; align-items:center; gap:6px; margin:3px 0; }
+    #legendPrint .psw{ width:14px; height:14px; flex-shrink:0; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Carte de points</h1>
+  <div class="sub">saisie manuelle ou import Excel — regroupement par couleur et forme</div>
+</header>
+<div id="banner">Le géocodage nécessite une connexion internet. Pour l'installer comme une application : menu du navigateur → « Ajouter à l'écran d'accueil » (iPhone/Android) ou icône d'installation dans la barre d'adresse (ordinateur).</div>
+
+<main>
+  <div id="panel">
+
+    <h2 class="section">source des adresses</h2>
+    <div class="tabs">
+      <button class="tab-btn active" id="tabManualBtn">Saisie manuelle</button>
+      <button class="tab-btn" id="tabExcelBtn">Import Excel</button>
+    </div>
+
+    <div class="tabpane active" id="tabManual">
+      <label for="addresses">une ligne par adresse — format : Adresse ; Groupe ; Libellé (optionnels)</label>
+      <textarea id="addresses" placeholder="12 rue de la Paix, 75002 Paris; Tribu Juda; Réunion mensuelle&#10;Mairie de Lyon; Tribu Benjamin&#10;9 avenue de l'Europe, 94320 Thiais"></textarea>
+      <div class="btn-row">
+        <button id="runManual">Placer sur la carte</button>
+        <button id="clearManual" class="secondary">Effacer</button>
+      </div>
+    </div>
+
+    <div class="tabpane" id="tabExcel">
+      <label for="excelFile">fichier Excel ou CSV</label>
+      <input type="file" id="excelFile" accept=".xlsx,.xls,.csv">
+      <div class="hint">La première ligne doit contenir les en-têtes de colonnes. Associe ensuite les colonnes ci-dessous.</div>
+      <div id="mappingArea" style="display:none; flex-direction:column; gap:8px;">
+        <div class="mapping-row"><label>Adresse *</label><select id="mapAdresse"></select></div>
+        <div class="mapping-row"><label>Groupe</label><select id="mapGroupe"></select></div>
+        <div class="mapping-row"><label>Libellé</label><select id="mapLibelle"></select></div>
+        <div class="btn-row">
+          <button id="runExcel">Placer sur la carte</button>
+          <button id="clearExcel" class="secondary">Effacer</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="checkbox-row">
+      <input type="checkbox" id="autoGroupCity">
+      <label for="autoGroupCity">Regrouper automatiquement par ville / arrondissement</label>
+    </div>
+
+    <div id="status"></div>
+    <div id="list"></div>
+
+    <h2 class="section">légende (couleurs et formes)</h2>
+    <div class="hint">Clique sur un point de la carte pour modifier son libellé ou son groupe directement.</div>
+    <div id="legend"><span class="hint">La légende apparaît une fois des points placés — modifie couleur, forme et libellé de chaque groupe.</span></div>
+    <button id="toggleLabels" class="secondary">Afficher les libellés sur la carte</button>
+
+    <h2 class="section">export</h2>
+    <div class="btn-row">
+      <button id="exportPrint">Imprimer / PDF</button>
+      <button id="exportCsv" class="secondary">Exporter en CSV</button>
+    </div>
+    <div class="hint">« Imprimer / PDF » ouvre la boîte d'impression du navigateur — choisis « Enregistrer au format PDF » pour obtenir une image de la carte avec sa légende.</div>
+  </div>
+  <div id="map"></div>
+</main>
+
+<div id="legendPrint"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+  const map = L.map('map', { zoomControl: true }).setView([46.6, 2.4], 6);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+
+  const PALETTE = ['#a2482f','#3f6b4c','#41564f','#8a6d3b','#5b4b8a','#2f6f8a','#8a2f56','#6f8a2f','#4b5b8a','#8a5b2f'];
+  const SHAPES = ['circle','square','triangle','diamond','star'];
+
+  let entries = [];      // {id, address, group, label, lat, lon, status, marker, error}
+  let groupsMeta = {};   // groupKey -> {color, shape, displayLabel}
+  let idCounter = 0;
+  let showLabels = false;
+
+  const statusEl = document.getElementById('status');
+  const listEl = document.getElementById('list');
+  const legendEl = document.getElementById('legend');
+  const legendPrintEl = document.getElementById('legendPrint');
+
+  // ---------- Tabs ----------
+  const tabManualBtn = document.getElementById('tabManualBtn');
+  const tabExcelBtn = document.getElementById('tabExcelBtn');
+  const tabManual = document.getElementById('tabManual');
+  const tabExcel = document.getElementById('tabExcel');
+  tabManualBtn.addEventListener('click', () => {
+    tabManualBtn.classList.add('active'); tabExcelBtn.classList.remove('active');
+    tabManual.classList.add('active'); tabExcel.classList.remove('active');
+  });
+  tabExcelBtn.addEventListener('click', () => {
+    tabExcelBtn.classList.add('active'); tabManualBtn.classList.remove('active');
+    tabExcel.classList.add('active'); tabManual.classList.remove('active');
+  });
+
+  // ---------- Shape rendering ----------
+  function shapeSvg(shape, color){
+    const s = 26;
+    const stroke = '#1c2b28';
+    switch(shape){
+      case 'square':
+        return `<svg width="${s}" height="${s}"><rect x="4" y="4" width="18" height="18" fill="${color}" stroke="${stroke}" stroke-width="2"/></svg>`;
+      case 'triangle':
+        return `<svg width="${s}" height="${s}"><polygon points="13,3 24,23 2,23" fill="${color}" stroke="${stroke}" stroke-width="2"/></svg>`;
+      case 'diamond':
+        return `<svg width="${s}" height="${s}"><polygon points="13,2 24,13 13,24 2,13" fill="${color}" stroke="${stroke}" stroke-width="2"/></svg>`;
+      case 'star':
+        return `<svg width="${s}" height="${s}"><polygon points="13,1 16,9 25,9 17.5,14.5 20.5,23 13,17.5 5.5,23 8.5,14.5 1,9 10,9" fill="${color}" stroke="${stroke}" stroke-width="1.5"/></svg>`;
+      case 'circle':
+      default:
+        return `<svg width="${s}" height="${s}"><circle cx="13" cy="13" r="10" fill="${color}" stroke="${stroke}" stroke-width="2"/></svg>`;
+    }
+  }
+
+  function iconFor(group){
+    const meta = groupsMeta[group];
+    return L.divIcon({
+      html: shapeSvg(meta.shape, meta.color),
+      className: '',
+      iconSize: [26,26],
+      iconAnchor: [13,13],
+      popupAnchor: [0,-13]
+    });
+  }
+
+  function ensureGroupMeta(group){
+    if(groupsMeta[group]) return;
+    const n = Object.keys(groupsMeta).length;
+    groupsMeta[group] = {
+      color: PALETTE[n % PALETTE.length],
+      shape: SHAPES[n % SHAPES.length],
+      displayLabel: group
+    };
+  }
+
+  function renderLegend(){
+    const keys = Object.keys(groupsMeta);
+    if(!keys.length){
+      legendEl.innerHTML = '<span class="hint">La légende apparaît une fois des points placés — modifie couleur, forme et libellé de chaque groupe.</span>';
+      legendPrintEl.innerHTML = '';
+      return;
+    }
+    legendEl.innerHTML = '';
+    legendPrintEl.innerHTML = '';
+    keys.forEach(key => {
+      const meta = groupsMeta[key];
+      const row = document.createElement('div');
+      row.className = 'legend-item';
+      row.innerHTML = `
+        <span class="swatch">${shapeSvg(meta.shape, meta.color)}</span>
+        <select class="shape-select" data-group="${key}">
+          ${SHAPES.map(s => `<option value="${s}" ${s===meta.shape?'selected':''}>${s}</option>`).join('')}
+        </select>
+        <input type="color" data-group="${key}" value="${meta.color}">
+        <input type="text" data-group="${key}" value="${meta.displayLabel}">
+      `;
+      legendEl.appendChild(row);
+
+      const printItem = document.createElement('div');
+      printItem.className = 'pitem';
+      printItem.innerHTML = `<span class="psw">${shapeSvg(meta.shape, meta.color)}</span><span>${meta.displayLabel}</span>`;
+      legendPrintEl.appendChild(printItem);
+    });
+
+    legendEl.querySelectorAll('select.shape-select').forEach(sel => {
+      sel.addEventListener('change', e => {
+        const g = e.target.dataset.group;
+        groupsMeta[g].shape = e.target.value;
+        refreshGroupMarkers(g);
+        renderLegend();
+      });
+    });
+    legendEl.querySelectorAll('input[type=color]').forEach(inp => {
+      inp.addEventListener('input', e => {
+        const g = e.target.dataset.group;
+        groupsMeta[g].color = e.target.value;
+        refreshGroupMarkers(g);
+        renderLegend();
+      });
+    });
+    legendEl.querySelectorAll('input[type=text]').forEach(inp => {
+      inp.addEventListener('change', e => {
+        const g = e.target.dataset.group;
+        groupsMeta[g].displayLabel = e.target.value || g;
+        renderLegend();
+        entries.filter(en => en.group === g && en.marker).forEach(en => {
+          en.marker.setPopupContent(popupHtml(en));
+        });
+      });
+    });
+  }
+
+  function refreshGroupMarkers(group){
+    entries.filter(en => en.group === group && en.marker).forEach(en => {
+      en.marker.setIcon(iconFor(group));
+    });
+  }
+
+  function escAttr(s){ return String(s).replace(/"/g,'&quot;'); }
+
+  function popupHtml(entry){
+    const meta = groupsMeta[entry.group] || { displayLabel: entry.group };
+    return `
+      <div class="popup-edit" data-id="${entry.id}">
+        <div class="current"><strong>${entry.label}</strong><br>${entry.address}<br><em>${meta.displayLabel}</em></div>
+        <hr>
+        <label>Libellé</label>
+        <input type="text" class="popupLabel" value="${escAttr(entry.label)}">
+        <label>Groupe</label>
+        <input type="text" class="popupGroup" list="groupsDatalist-${entry.id}" value="${escAttr(meta.displayLabel)}">
+        <datalist id="groupsDatalist-${entry.id}">
+          ${Object.keys(groupsMeta).map(k => `<option value="${escAttr(groupsMeta[k].displayLabel)}">`).join('')}
+        </datalist>
+        <button class="popupSave" type="button">Enregistrer</button>
+      </div>
+    `;
+  }
+
+  function findGroupKeyByDisplayLabel(label){
+    const trimmed = label.trim();
+    if(!trimmed) return null;
+    const existing = Object.keys(groupsMeta).find(k => groupsMeta[k].displayLabel === trimmed);
+    return existing || trimmed; // reuse existing group if the label matches, otherwise treat as a new group key
+  }
+
+  function cleanupUnusedGroups(){
+    Object.keys(groupsMeta).forEach(g => {
+      const stillUsed = entries.some(en => en.status === 'ok' && en.group === g);
+      if(!stillUsed) delete groupsMeta[g];
+    });
+  }
+
+  function updateEntry(id, newLabel, newGroupLabel){
+    const entry = entries.find(en => en.id === id);
+    if(!entry) return;
+    const oldGroup = entry.group;
+    entry.label = newLabel.trim() || entry.address;
+    const groupKey = findGroupKeyByDisplayLabel(newGroupLabel) || 'Sans groupe';
+    entry.group = groupKey;
+    ensureGroupMeta(groupKey);
+    if(!groupsMeta[groupKey].displayLabel || groupsMeta[groupKey].displayLabel === groupKey){
+      groupsMeta[groupKey].displayLabel = newGroupLabel.trim() || groupKey;
+    }
+    if(entry.marker){
+      entry.marker.setIcon(iconFor(entry.group));
+      entry.marker.setPopupContent(popupHtml(entry));
+      if(entry.marker.getTooltip()) entry.marker.setTooltipContent(entry.label);
+    }
+    if(oldGroup !== entry.group) cleanupUnusedGroups();
+    renderLegend();
+  }
+
+  function addRow(entry){
+    const row = document.createElement('div');
+    row.className = 'row ' + (entry.status === 'ok' ? 'ok' : 'err');
+    row.innerHTML = `<span class="mark">${entry.status === 'ok' ? '●' : '✕'}</span><span class="txt">${entry.address}${entry.error ? ' — ' + entry.error : ''}</span>`;
+    listEl.appendChild(row);
+  }
+
+  function clearAll(){
+    entries.forEach(en => { if(en.marker) map.removeLayer(en.marker); });
+    entries = [];
+    groupsMeta = {};
+    listEl.innerHTML = '';
+    statusEl.textContent = '';
+    renderLegend();
+  }
+
+  document.getElementById('clearManual').addEventListener('click', clearAll);
+  document.getElementById('clearExcel').addEventListener('click', clearAll);
+
+  // ---------- Geocoding & Localité ----------
+  function extractLocality(addressObj){
+    if(!addressObj || typeof addressObj !== 'object') return null;
+    const priority = [
+      'city_district',
+      'borough',
+      'suburb',
+      'city',
+      'town',
+      'village',
+      'municipality',
+      'county'
+    ];
+    for(const key of priority){
+      const val = addressObj[key];
+      if(val && typeof val === 'string' && val.trim()){
+        return val.trim();
+      }
+    }
+    return null;
+  }
+
+  async function geocode(address){
+    const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&addressdetails=1&q=' + encodeURIComponent(address);
+    let res;
+    try{
+      res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+    }catch(e){
+      throw new Error("réseau indisponible — ouvre ce fichier dans un navigateur");
+    }
+    if(!res.ok) throw new Error('requête échouée');
+    const data = await res.json();
+    if(!data.length) throw new Error('adresse introuvable');
+    return {
+      lat: parseFloat(data[0].lat),
+      lon: parseFloat(data[0].lon),
+      addressDetails: data[0].address || null
+    };
+  }
+
+  async function placeList(list){
+    // list: array of {address, group, label}
+    clearAll();
+    if(!list.length){
+      statusEl.textContent = 'Aucune adresse à placer.';
+      return;
+    }
+    const autoGroup = !!document.getElementById('autoGroupCity')?.checked;
+    let done = 0, ok = 0;
+    for(const item of list){
+      const manualGroup = item.group && item.group.trim() ? item.group.trim() : 'Sans groupe';
+      const entry = {
+        id: idCounter++,
+        address: item.address,
+        group: manualGroup,
+        label: item.label && item.label.trim() ? item.label.trim() : item.address,
+        status: 'pending',
+        marker: null,
+        error: null
+      };
+      entries.push(entry);
+      statusEl.textContent = `Géocodage ${done+1}/${list.length}...`;
+      try{
+        const r = await geocode(entry.address);
+        entry.lat = r.lat;
+        entry.lon = r.lon;
+        entry.status = 'ok';
+
+        if(autoGroup){
+          const locality = extractLocality(r.addressDetails);
+          if(locality){
+            entry.group = locality;
+          }
+        }
+        ensureGroupMeta(entry.group);
+
+        entry.marker = L.marker([r.lat, r.lon], { icon: iconFor(entry.group) }).addTo(map);
+        entry.marker.bindPopup(popupHtml(entry));
+        entry.marker.on('popupopen', (ev) => {
+          const el = ev.popup.getElement();
+          if(!el) return;
+          const btn = el.querySelector('.popupSave');
+          if(!btn) return;
+          btn.addEventListener('click', () => {
+            const labelInput = el.querySelector('.popupLabel');
+            const groupInput = el.querySelector('.popupGroup');
+            updateEntry(entry.id, labelInput.value, groupInput.value);
+            entry.marker.closePopup();
+          });
+        });
+        if(showLabels){
+          entry.marker.bindTooltip(entry.label, { permanent: true, direction: 'right', offset: [12,0], className: 'map-label' });
+        }
+        ok++;
+      }catch(e){
+        entry.status = 'err';
+        entry.error = e.message;
+        ensureGroupMeta(entry.group);
+      }
+      addRow(entry);
+      done++;
+      await new Promise(r => setTimeout(r, 1000)); // respecte la politique d'usage Nominatim
+    }
+    cleanupUnusedGroups();
+    statusEl.textContent = `${ok}/${list.length} adresse(s) placée(s).`;
+    renderLegend();
+    const placed = entries.filter(en => en.marker);
+    if(placed.length){
+      const group = L.featureGroup(placed.map(en => en.marker));
+      map.fitBounds(group.getBounds().pad(0.2));
+    }
+  }
+
+  // ---------- Manual input ----------
+  document.getElementById('runManual').addEventListener('click', () => {
+    const raw = document.getElementById('addresses').value;
+    const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+    const list = lines.map(line => {
+      const parts = line.split(';').map(p => p.trim());
+      return { address: parts[0], group: parts[1] || '', label: parts[2] || '' };
+    });
+    placeList(list);
+  });
+
+  // ---------- Excel import ----------
+  let excelRows = [];
+  let excelHeaders = [];
+
+  document.getElementById('excelFile').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try{
+        const data = new Uint8Array(evt.target.result);
+        const wb = XLSX.read(data, { type: 'array' });
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+        if(!rows.length){
+          statusEl.textContent = 'Fichier vide ou illisible.';
+          return;
+        }
+        excelRows = rows;
+        excelHeaders = Object.keys(rows[0]);
+        const opts = excelHeaders.map(h => `<option value="${h}">${h}</option>`).join('');
+        const emptyOpt = '<option value="">— aucune —</option>';
+        document.getElementById('mapAdresse').innerHTML = opts;
+        document.getElementById('mapGroupe').innerHTML = emptyOpt + opts;
+        document.getElementById('mapLibelle').innerHTML = emptyOpt + opts;
+        document.getElementById('mappingArea').style.display = 'flex';
+        statusEl.textContent = `${rows.length} ligne(s) détectée(s). Associe les colonnes ci-dessous.`;
+      }catch(err){
+        statusEl.textContent = 'Erreur de lecture du fichier : ' + err.message;
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  });
+
+  document.getElementById('runExcel').addEventListener('click', () => {
+    const colA = document.getElementById('mapAdresse').value;
+    const colG = document.getElementById('mapGroupe').value;
+    const colL = document.getElementById('mapLibelle').value;
+    if(!colA){
+      statusEl.textContent = 'Choisis au minimum la colonne Adresse.';
+      return;
+    }
+    const list = excelRows
+      .map(r => ({
+        address: String(r[colA] || '').trim(),
+        group: colG ? String(r[colG] || '').trim() : '',
+        label: colL ? String(r[colL] || '').trim() : ''
+      }))
+      .filter(item => item.address);
+    placeList(list);
+  });
+
+  // ---------- Toggle des libellés sur la carte ----------
+  const toggleLabelsBtn = document.getElementById('toggleLabels');
+  toggleLabelsBtn.addEventListener('click', () => {
+    showLabels = !showLabels;
+    toggleLabelsBtn.textContent = showLabels ? 'Masquer les libellés sur la carte' : 'Afficher les libellés sur la carte';
+    toggleLabelsBtn.classList.toggle('active', showLabels);
+    entries.filter(en => en.marker).forEach(en => {
+      if(showLabels){
+        en.marker.bindTooltip(en.label, { permanent: true, direction: 'right', offset: [12,0], className: 'map-label' }).openTooltip();
+      }else{
+        en.marker.unbindTooltip();
+      }
+    });
+  });
+
+  // ---------- Export ----------
+  document.getElementById('exportPrint').addEventListener('click', () => {
+    window.print();
+  });
+
+  document.getElementById('exportCsv').addEventListener('click', () => {
+    if(!entries.length){
+      statusEl.textContent = 'Rien à exporter.';
+      return;
+    }
+    const rows = [['Adresse','Groupe','Libellé','Statut','Latitude','Longitude']];
+    entries.forEach(en => {
+      rows.push([
+        en.address,
+        groupsMeta[en.group] ? groupsMeta[en.group].displayLabel : en.group,
+        en.label,
+        en.status === 'ok' ? 'placée' : 'échec',
+        en.lat != null ? en.lat : '',
+        en.lon != null ? en.lon : ''
+      ]);
+    });
+    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(';')).join('\n');
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'points-carte.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  renderLegend();
+
+  // ---------- Enregistrement du service worker (PWA) ----------
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js').catch(() => {
+        // L'app fonctionne quand même sans service worker, simplement sans mise en cache.
+      });
+    });
+  }
+</script>
+
+</body>
+</html>
