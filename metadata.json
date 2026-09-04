@@ -1,6 +1,6 @@
 {
-  "name": "Carte de points",
-  "description": "Placer des adresses sur une carte, les regrouper par couleur et forme, exporter en PDF ou CSV.",
+  "name": "Carte de points & Zones géographiques",
+  "description": "Placer des adresses, regrouper par concentration ou rayon personnalisable, surbrillance et focus de régions/départements français, liste détaillée des points par zone, et export sélectif (PDF, image PNG, CSV).",
   "requestFramePermissions": ["geolocation"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

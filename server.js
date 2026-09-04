@@ -9,6 +9,17 @@ const app = express();
 const PORT = 3000;
 
 const publicDir = path.join(__dirname, 'public');
+
+// Ne pas mettre en cache le service worker ou le HTML pour garantir que les mises à jour sont instantanées
+app.use((req, res, next) => {
+  if (req.path === '/service-worker.js' || req.path === '/sw.js') {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  } else if (req.path.endsWith('.html') || req.path === '/') {
+    res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+  }
+  next();
+});
+
 app.use(express.static(publicDir));
 
 app.get('*', (req, res) => {

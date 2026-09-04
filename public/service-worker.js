@@ -1,4 +1,4 @@
-const CACHE_NAME = 'carte-de-points-v2';
+const CACHE_NAME = 'carte-de-points-v8';
 const APP_SHELL = [
   './',
   './index.html',
@@ -27,10 +27,27 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
   // Ne pas intercepter les appels vers d'autres origines (géocodage Nominatim,
-  // tuiles OpenStreetMap, CDN Leaflet/SheetJS) : ils doivent toujours passer par le réseau.
+  // tuiles OpenStreetMap, CDN Leaflet/SheetJS, Overpass) : toujours réseau direct.
   if (url.origin !== self.location.origin) return;
 
-  // App shell : cache d'abord, réseau en secours (et mise à jour silencieuse du cache).
+  // Pour la page HTML principale / navigation : Réseau en priorité (Network First)
+  // pour afficher immédiatement la toute dernière version déployée sans être bloqué par le cache.
+  if (event.request.mode === 'navigate' || event.request.destination === 'document' || url.pathname.endsWith('.html') || url.pathname === '/') {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response && response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          }
+          return response;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  // Pour les autres assets locaux (icônes, etc.) : Stale While Revalidate
   event.respondWith(
     caches.match(event.request).then((cached) => {
       const fetchPromise = fetch(event.request)

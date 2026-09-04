@@ -3,9 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Carte de points</title>
+<title>Carte de points & Zones géographiques</title>
+<meta name="description" content="Placer des adresses, regrouper par concentration ou rayon personnalisable, surbrillance et focus de régions/départements français, liste détaillée des points par zone, et export sélectif (PDF, image PNG, CSV).">
+<meta property="og:title" content="Carte de points & Zones géographiques">
+<meta property="og:description" content="Placer des adresses, regrouper par concentration ou rayon personnalisable, surbrillance et focus de régions/départements français, liste détaillée des points par zone, et export sélectif (PDF, image PNG, CSV).">
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#1c2b28">
+<meta name="theme-color" content="#382012">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="mobile-web-app-capable" content="yes">
@@ -14,746 +17,2928 @@
 <meta name="apple-mobile-web-app-title" content="Carte">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
 <style>
-  :root{
-    --ink:#1c2b28;
-    --paper:#f6f4ee;
-    --line:#c9c2b2;
-    --brick:#a2482f;
-    --brick-dark:#7e3623;
-    --slate:#41564f;
-    --ok:#3f6b4c;
-    --err:#a2482f;
-    --panelw: 360px;
+  :root {
+    --bg-canvas: #fbf9f5;
+    --bg-panel: #ffffff;
+    --bg-panel-alt: #f7f3eb;
+    --bg-panel-hover: #f3ece0;
+    --marron-dark: #382012;
+    --marron-base: #5c371d;
+    --marron-light: #8c5835;
+    --or-base: #c59b27;
+    --or-dark: #996515;
+    --or-light: #e6ca65;
+    --or-bg: #fcf8ed;
+    --pourpre-base: #6b21a8;
+    --pourpre-dark: #4a1275;
+    --pourpre-light: #9333ea;
+    --pourpre-bg: #f5eefa;
+    --text-main: #2b1b12;
+    --text-muted: #685344;
+    --text-light: #8c786a;
+    --line: #ded6c8;
+    --line-gold: rgba(197, 155, 39, 0.35);
+    --panelw: 390px;
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
   }
-  *{box-sizing:border-box;}
-  html,body{height:100%;}
-  body{
-    margin:0;
-    font-family: "Iowan Old Style","Georgia",serif;
-    background:var(--paper);
-    color:var(--ink);
-    display:flex;
-    flex-direction:column;
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg-canvas);
+    color: var(--text-main);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
   }
-  header{
-    padding:16px 22px 12px;
-    border-bottom:2px solid var(--ink);
-    display:flex;
-    align-items:baseline;
-    justify-content:space-between;
-    flex-wrap:wrap;
-    gap:6px;
+  
+  /* En-tête de prestige */
+  header {
+    background: linear-gradient(135deg, var(--marron-dark) 0%, #4a2b18 55%, #30170a 100%);
+    color: #ffffff;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 2px solid var(--or-base);
+    box-shadow: 0 2px 10px rgba(40, 20, 10, 0.25);
+    z-index: 50;
+    flex-wrap: wrap;
+    gap: 10px;
   }
-  header h1{ font-size:1.3rem; margin:0; font-weight:600; }
-  header .sub{ font-family:"Helvetica Neue",Arial,sans-serif; font-size:0.76rem; color:var(--slate); }
-  #banner{
-    font-family:"Helvetica Neue",Arial,sans-serif;
-    font-size:0.72rem;
-    color:var(--slate);
-    background:#efe9d8;
-    border-bottom:1px solid var(--line);
-    padding:6px 22px;
+  .header-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
   }
-  main{ flex:1; display:flex; min-height:0; }
-  #panel{
-    width:var(--panelw);
-    min-width:300px;
-    max-width:420px;
-    border-right:2px solid var(--ink);
-    display:flex;
-    flex-direction:column;
-    padding:14px;
-    gap:12px;
-    overflow-y:auto;
-    background:var(--paper);
+  .header-logo {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, var(--or-light), var(--or-base));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--marron-dark);
+    font-size: 1.1rem;
+    font-weight: 900;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
   }
-  h2.section{
-    font-family:"Helvetica Neue",Arial,sans-serif;
-    font-size:0.72rem;
-    color:var(--slate);
-    text-transform:lowercase;
-    margin:6px 0 0;
-    border-top:1px solid var(--line);
-    padding-top:10px;
-    letter-spacing:0.02em;
+  header h1 {
+    font-family: "Georgia", "Iowan Old Style", serif;
+    font-size: 1.25rem;
+    margin: 0;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: #fff;
   }
-  #panel > h2.section:first-child{ border-top:none; padding-top:0; }
-  .tabs{ display:flex; gap:6px; }
-  .tab-btn{
-    flex:1;
-    font-family:"Helvetica Neue",Arial,sans-serif;
-    font-size:0.78rem;
-    padding:8px 6px;
-    background:transparent;
-    border:1px solid var(--line);
-    color:var(--slate);
-    cursor:pointer;
-    border-radius:2px;
+  header .sub {
+    font-size: 0.74rem;
+    color: var(--or-light);
+    margin-top: 1px;
+    letter-spacing: 0.01em;
   }
-  .tab-btn.active{ background:var(--ink); color:#fff; border-color:var(--ink); }
-  .tabpane{ display:none; flex-direction:column; gap:8px; }
-  .tabpane.active{ display:flex; }
-  label{ font-family:"Helvetica Neue",Arial,sans-serif; font-size:0.72rem; color:var(--slate); }
-  textarea{
-    min-height:120px;
-    resize:vertical;
-    font-family:"Helvetica Neue",Arial,sans-serif;
-    font-size:0.83rem;
-    padding:9px;
-    border:1px solid var(--line);
-    background:#fff;
-    color:var(--ink);
-    border-radius:2px;
-    line-height:1.4;
+  .header-badges {
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
-  textarea:focus, select:focus, input:focus{ outline:2px solid var(--brick); outline-offset:1px; }
-  .hint{ font-family:"Helvetica Neue",Arial,sans-serif; font-size:0.68rem; color:var(--slate); line-height:1.4; }
-  input[type=file]{ font-family:"Helvetica Neue",Arial,sans-serif; font-size:0.76rem; }
-  select{
-    font-family:"Helvetica Neue",Arial,sans-serif;
-    font-size:0.78rem;
-    padding:6px;
-    border:1px solid var(--line);
-    background:#fff;
-    color:var(--ink);
-    border-radius:2px;
+  .header-pill {
+    font-size: 0.72rem;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid var(--or-base);
+    color: var(--or-light);
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-weight: 600;
   }
-  .mapping-row{ display:flex; align-items:center; gap:8px; justify-content:space-between; }
-  .mapping-row label{ flex:0 0 90px; }
-  .mapping-row select{ flex:1; }
-  .checkbox-row{
-    display:flex;
-    align-items:center;
-    gap:8px;
-    padding:4px 0;
+  .header-mobile-toggle {
+    display: none;
   }
-  .checkbox-row input[type=checkbox]{
-    accent-color:var(--brick);
-    cursor:pointer;
-    width:15px;
-    height:15px;
-    margin:0;
+
+  /* Disposition Principale */
+  main {
+    flex: 1;
+    display: flex;
+    min-height: 0;
+    position: relative;
   }
-  .checkbox-row label{
-    font-family:"Helvetica Neue",Arial,sans-serif;
-    font-size:0.75rem;
-    color:var(--ink);
-    cursor:pointer;
-    user-select:none;
-    line-height:1.3;
+  
+  /* Volet Latéral Élégant */
+  #panel {
+    width: var(--panelw);
+    min-width: 330px;
+    max-width: 440px;
+    background: var(--bg-panel);
+    border-right: 1.5px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    z-index: 20;
+    box-shadow: 2px 0 12px rgba(45, 25, 15, 0.04);
   }
-  button{
-    font-family:"Helvetica Neue",Arial,sans-serif;
-    font-size:0.82rem;
-    padding:9px 12px;
-    background:var(--brick);
-    color:#fff;
-    border:none;
-    border-radius:2px;
-    cursor:pointer;
-    font-weight:600;
+  
+  .panel-content {
+    padding: 14px 16px 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
   }
-  button:hover{ background:var(--brick-dark); }
-  button:disabled{ background:#b8b0a0; cursor:not-allowed; }
-  button.secondary{ background:transparent; color:var(--ink); border:1px solid var(--line); }
-  button.secondary:hover{ border-color:var(--ink); background:transparent; }
-  .btn-row{ display:flex; gap:8px; flex-wrap:wrap; }
-  #status{ font-family:"Helvetica Neue",Arial,sans-serif; font-size:0.74rem; color:var(--slate); min-height:1.1em; }
-  #list{ max-height:150px; overflow-y:auto; }
-  .row{
-    font-family:"Helvetica Neue",Arial,sans-serif;
-    font-size:0.76rem;
-    padding:4px 0;
-    border-bottom:1px dotted var(--line);
-    display:flex;
-    gap:6px;
-    align-items:flex-start;
+
+  /* Cartes de sections (Bento Design) */
+  .panel-card {
+    background: var(--bg-panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
   }
-  .row .mark{ width:14px; flex-shrink:0; text-align:center; font-weight:700; }
-  .row.ok .mark{ color:var(--ok); }
-  .row.err .mark{ color:var(--err); }
-  .row .txt{ flex:1; word-break:break-word; }
-  #legend{ display:flex; flex-direction:column; gap:6px; }
-  .legend-item{
-    display:flex;
-    align-items:center;
-    gap:8px;
-    font-family:"Helvetica Neue",Arial,sans-serif;
-    font-size:0.78rem;
-    padding:4px 0;
+  .panel-card:hover {
+    border-color: var(--or-base);
   }
-  .legend-item .swatch{ width:22px; height:22px; flex-shrink:0; }
-  .legend-item select.shape-select{ flex:0 0 92px; }
-  .legend-item input[type=color]{ width:32px; height:26px; padding:0; border:1px solid var(--line); border-radius:2px; cursor:pointer; }
-  .legend-item input[type=text]{
-    flex:1;
-    font-family:"Helvetica Neue",Arial,sans-serif;
-    font-size:0.78rem;
-    padding:5px 6px;
-    border:1px solid var(--line);
-    border-radius:2px;
-    color:var(--ink);
+  .panel-card.active-card {
+    border-color: var(--marron-base);
+    box-shadow: 0 2px 8px rgba(92, 55, 29, 0.08);
   }
-  #map{ flex:1; min-width:0; }
-  .leaflet-popup-content{ font-family:"Helvetica Neue",Arial,sans-serif; font-size:0.82rem; }
-  .popup-edit{ display:flex; flex-direction:column; gap:5px; min-width:180px; }
-  .popup-edit .current{ font-size:0.82rem; line-height:1.4; }
-  .popup-edit hr{ border:none; border-top:1px solid var(--line); margin:4px 0; }
-  .popup-edit label{ font-size:0.68rem; }
-  .popup-edit input{
-    font-family:"Helvetica Neue",Arial,sans-serif;
-    font-size:0.78rem;
-    padding:5px 6px;
-    border:1px solid var(--line);
-    border-radius:2px;
+  
+  .card-header {
+    background: var(--bg-panel-alt);
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid var(--line);
   }
-  .popup-edit button{ margin-top:4px; padding:6px 10px; font-size:0.76rem; }
-  .map-label{
-    background:rgba(246,244,238,0.88);
-    border:none;
-    box-shadow:none;
-    font-family:"Iowan Old Style","Georgia",serif;
-    font-style:italic;
-    font-size:0.78rem;
-    color:var(--ink);
-    padding:1px 5px;
+  .card-header-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: "Georgia", serif;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--marron-dark);
   }
-  .map-label::before{ display:none; }
-  #toggleLabels.active{ background:var(--ink); color:#fff; border-color:var(--ink); }
-  #legendPrint{ display:none; }
-  @media print{
-    header, #banner, #panel{ display:none !important; }
-    main{ display:block; }
-    #map{ width:100vw; height:100vh; }
-    #legendPrint{
-      display:block;
-      position:fixed;
-      bottom:14px;
-      left:14px;
-      z-index:9999;
-      background:rgba(255,255,255,0.92);
-      border:1px solid #1c2b28;
-      padding:10px 12px;
-      font-family:"Helvetica Neue",Arial,sans-serif;
-      font-size:11px;
-      max-width:220px;
+  .card-header-title .icon-badge {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    background: var(--or-bg);
+    border: 1px solid var(--or-base);
+    color: var(--marron-dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.82rem;
+  }
+  .card-header-title.pourpre .icon-badge {
+    background: var(--pourpre-bg);
+    border-color: var(--pourpre-base);
+    color: var(--pourpre-dark);
+  }
+  .card-header-arrow {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    transition: transform 0.2s ease;
+  }
+  .panel-card.collapsed .card-header-arrow {
+    transform: rotate(-90deg);
+  }
+  .card-body {
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: #ffffff;
+  }
+  .panel-card.collapsed .card-body {
+    display: none;
+  }
+
+  /* Typographie & Champs */
+  label {
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: var(--marron-dark);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .hint {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+  }
+  .hint a {
+    color: var(--marron-base);
+    text-decoration: underline;
+  }
+  textarea, input[type=text], input[type=number], select {
+    font-family: inherit;
+    font-size: 0.82rem;
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    background: #ffffff;
+    color: var(--text-main);
+    width: 100%;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  textarea:focus, input[type=text]:focus, input[type=number]:focus, select:focus {
+    outline: none;
+    border-color: var(--or-base);
+    box-shadow: 0 0 0 2.5px rgba(197, 155, 39, 0.25);
+  }
+  textarea {
+    min-height: 90px;
+    resize: vertical;
+    line-height: 1.4;
+  }
+
+  /* Boutons & Contrôles */
+  .btn-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  button {
+    font-family: inherit;
+    font-size: 0.80rem;
+    font-weight: 700;
+    padding: 8px 14px;
+    border-radius: var(--radius-sm);
+    border: 1px solid transparent;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.15s ease;
+    user-select: none;
+    white-space: nowrap;
+  }
+  button.primary-marron {
+    background: var(--marron-base);
+    color: #ffffff;
+    border-color: var(--marron-dark);
+    box-shadow: 0 1px 3px rgba(56, 32, 18, 0.2);
+  }
+  button.primary-marron:hover {
+    background: var(--marron-dark);
+  }
+  button.primary-pourpre {
+    background: var(--pourpre-base);
+    color: #ffffff;
+    border-color: var(--pourpre-dark);
+    box-shadow: 0 1px 3px rgba(107, 33, 168, 0.25);
+  }
+  button.primary-pourpre:hover {
+    background: var(--pourpre-dark);
+  }
+  button.primary-or {
+    background: linear-gradient(135deg, var(--or-light), var(--or-base));
+    color: var(--marron-dark);
+    border-color: var(--or-dark);
+    font-weight: 800;
+  }
+  button.primary-or:hover {
+    background: var(--or-base);
+    color: #fff;
+  }
+  button.secondary {
+    background: var(--bg-panel-alt);
+    color: var(--marron-dark);
+    border: 1px solid var(--line);
+  }
+  button.secondary:hover {
+    background: var(--bg-panel-hover);
+    border-color: var(--marron-base);
+  }
+  button.active-btn {
+    background: var(--marron-dark) !important;
+    color: #ffffff !important;
+    border-color: var(--marron-dark) !important;
+  }
+
+  /* Onglets internes */
+  .sub-tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--bg-panel-alt);
+    padding: 3px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--line);
+  }
+  .sub-tab-btn {
+    flex: 1;
+    font-size: 0.74rem;
+    font-weight: 700;
+    padding: 6px 8px;
+    background: transparent;
+    color: var(--text-muted);
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s ease;
+  }
+  .sub-tab-btn.active {
+    background: #ffffff;
+    color: var(--marron-dark);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    border: 1px solid var(--line-gold);
+  }
+
+  /* Checkbox personnalisées */
+  .checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+    cursor: pointer;
+  }
+  .checkbox-group input[type=checkbox] {
+    accent-color: var(--pourpre-base);
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    margin: 0;
+  }
+  .checkbox-group label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: none;
+    cursor: pointer;
+    color: var(--text-main);
+  }
+
+  /* Distance Presets Pills */
+  .preset-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 4px;
+  }
+  .dist-pill {
+    font-size: 0.70rem;
+    font-weight: 700;
+    padding: 4px 8px;
+    background: var(--bg-panel-alt);
+    border: 1px solid var(--line);
+    color: var(--marron-dark);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .dist-pill:hover {
+    border-color: var(--or-base);
+    background: var(--or-bg);
+  }
+  .dist-pill.active {
+    background: var(--marron-dark);
+    color: var(--or-light);
+    border-color: var(--marron-dark);
+  }
+
+  /* Zone Focus Banner */
+  .focus-banner {
+    background: linear-gradient(135deg, var(--pourpre-bg) 0%, #fdf9f2 100%);
+    border: 1.5px solid var(--pourpre-base);
+    border-radius: var(--radius-md);
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .focus-banner-txt strong {
+    color: var(--pourpre-dark);
+    font-size: 0.80rem;
+  }
+  .focus-banner-txt span {
+    font-size: 0.70rem;
+    color: var(--text-muted);
+  }
+
+  /* Légende */
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 0;
+    border-bottom: 1px dotted var(--line);
+  }
+  .legend-item .swatch {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .legend-item select.shape-select {
+    width: 76px;
+    padding: 4px;
+    font-size: 0.75rem;
+  }
+  .legend-item input[type=color] {
+    width: 28px;
+    height: 26px;
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    cursor: pointer;
+  }
+  .legend-item input[type=text] {
+    flex: 1;
+    font-size: 0.78rem;
+    padding: 4px 6px;
+  }
+  .legend-count-pill {
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    background: var(--or-bg);
+    border: 1px solid var(--or-base);
+    color: var(--marron-dark);
+    border-radius: 10px;
+    white-space: nowrap;
+  }
+  .legend-zoom-btn, .legend-list-btn {
+    padding: 3px 6px;
+    font-size: 0.78rem;
+    background: var(--bg-panel-alt);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    color: var(--marron-dark);
+    cursor: pointer;
+  }
+  .legend-zoom-btn:hover, .legend-list-btn:hover {
+    background: var(--or-bg);
+    border-color: var(--or-base);
+  }
+
+  /* Cartes de zones créées */
+  .zone-card {
+    background: var(--bg-panel-alt);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    padding: 6px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .zone-card-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--marron-dark);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .zone-card-sub {
+    font-size: 0.68rem;
+    color: var(--text-muted);
+  }
+
+  /* Conteneur de la Carte Leaflet */
+  #map {
+    flex: 1;
+    min-width: 0;
+    background: #eae5dc;
+  }
+  .map-crosshair-mode, .map-crosshair-mode * {
+    cursor: crosshair !important;
+  }
+
+  /* Badge flottant sur la carte */
+  .map-floating-badge {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    z-index: 1000;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1.5px solid var(--or-base);
+    border-radius: var(--radius-md);
+    padding: 8px 14px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--marron-dark);
+    backdrop-filter: blur(4px);
+  }
+  .map-floating-badge button {
+    padding: 3px 8px;
+    font-size: 0.72rem;
+  }
+
+  /* Modale Popup Liste des Points d'une Zone */
+  .zone-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(43, 27, 18, 0.6);
+    backdrop-filter: blur(3px);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .zone-modal-card {
+    background: #ffffff;
+    border: 2px solid var(--or-base);
+    box-shadow: 0 16px 36px rgba(40, 20, 10, 0.35);
+    width: 100%;
+    max-width: 560px;
+    max-height: 88vh;
+    display: flex;
+    flex-direction: column;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    animation: modalAnim 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes modalAnim {
+    from { opacity: 0; transform: scale(0.95) translateY(10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .zone-modal-header {
+    background: linear-gradient(135deg, var(--marron-dark) 0%, var(--marron-base) 100%);
+    color: #ffffff;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 2px solid var(--or-base);
+  }
+  .zone-modal-header h3 {
+    margin: 0;
+    font-family: "Georgia", serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--or-light);
+  }
+  .zone-modal-header .subt {
+    font-size: 0.74rem;
+    color: #f7f3eb;
+    margin-top: 2px;
+  }
+  .zone-modal-close {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid var(--or-base);
+    color: #ffffff;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    cursor: pointer;
+  }
+  .zone-modal-close:hover {
+    background: var(--or-base);
+    color: var(--marron-dark);
+  }
+  .zone-modal-search {
+    padding: 10px 16px;
+    background: var(--bg-panel-alt);
+    border-bottom: 1px solid var(--line);
+  }
+  .zone-modal-list {
+    padding: 12px 16px;
+    overflow-y: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: calc(88vh - 200px);
+    background: #ffffff;
+  }
+  .zone-point-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 9px 12px;
+    background: var(--bg-canvas);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    transition: all 0.15s ease;
+  }
+  .zone-point-item:hover {
+    border-color: var(--or-base);
+    background: var(--or-bg);
+  }
+  .zone-point-idx {
+    background: var(--marron-dark);
+    color: var(--or-light);
+    font-size: 0.70rem;
+    font-weight: 800;
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .zone-point-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .zone-point-title {
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: var(--marron-dark);
+  }
+  .zone-point-addr {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+    word-break: break-word;
+  }
+  .zone-point-dist {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--pourpre-dark);
+    background: var(--pourpre-bg);
+    border: 1px solid rgba(107, 33, 168, 0.2);
+    padding: 2px 7px;
+    border-radius: 10px;
+    margin-top: 4px;
+  }
+  .zone-modal-footer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: var(--bg-panel-alt);
+    border-top: 1px solid var(--line);
+  }
+
+  /* Tooltip and popup Leaflet styling */
+  .leaflet-popup-content {
+    font-family: inherit;
+    font-size: 0.82rem;
+    line-height: 1.4;
+    color: var(--text-main);
+  }
+  .map-label {
+    background: rgba(251, 249, 245, 0.92);
+    border: 1px solid var(--or-base);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+    font-family: "Georgia", serif;
+    font-size: 0.78rem;
+    color: var(--marron-dark);
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 3px;
+  }
+  .region-tooltip {
+    background: rgba(56, 32, 18, 0.92);
+    color: #ffffff;
+    border: 1.5px solid var(--or-light);
+    border-radius: 4px;
+    padding: 5px 10px;
+    font-size: 0.78rem;
+    font-weight: 700;
+  }
+  .region-tooltip span {
+    color: var(--or-light);
+  }
+
+  /* Badges Transports Officiels */
+  .transit-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    border-radius: 12px;
+    padding: 1px 7px;
+    font-size: 0.72rem;
+    line-height: 1.2;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+  .transit-badge.metro { background: #6d28d9; color: #fff; }
+  .transit-badge.rer { background: #dc2626; color: #fff; }
+  .transit-badge.tram { background: #059669; color: #fff; }
+  .transit-badge.train { background: #2563eb; color: #fff; }
+  .transit-badge.bus { background: #334155; color: #fff; }
+
+  /* Mobile Responsive */
+  @media (max-width: 768px) {
+    header { padding: 8px 12px; }
+    header h1 { font-size: 1.05rem; }
+    .header-mobile-toggle {
+      display: inline-flex;
+      background: var(--or-base);
+      color: var(--marron-dark);
+      padding: 6px 10px;
+      font-size: 0.74rem;
+      border-radius: 20px;
+      font-weight: 800;
     }
-    #legendPrint .pitem{ display:flex; align-items:center; gap:6px; margin:3px 0; }
-    #legendPrint .psw{ width:14px; height:14px; flex-shrink:0; }
+    #panel {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100% !important;
+      max-width: 100% !important;
+      height: 82vh;
+      border-radius: 16px 16px 0 0;
+      box-shadow: 0 -8px 30px rgba(0,0,0,0.3);
+      transform: translateY(105%);
+      transition: transform 0.28s ease;
+    }
+    #panel.mobile-open {
+      transform: translateY(0);
+    }
   }
+
+  /* Zone d'impression personnalisée professionnelle */
+  @media print {
+    body { background: #ffffff !important; color: #1a1a1a !important; font-size: 11pt !important; }
+    header, #panel, .map-floating-badge, .leaflet-control-zoom, .leaflet-control-attribution, .zone-modal-backdrop { display: none !important; }
+    main { display: block !important; height: auto !important; width: 100% !important; }
+    #map {
+      width: 100% !important;
+      height: 520px !important;
+      page-break-inside: avoid !important;
+      border: 1.5px solid #382012 !important;
+      border-radius: 4px !important;
+      margin-bottom: 18px !important;
+    }
+    #printReportContainer {
+      display: block !important;
+      width: 100% !important;
+    }
+    #legendPrint {
+      display: block !important;
+      margin-bottom: 14px !important;
+      padding: 8px 12px !important;
+      background: #faf8f5 !important;
+      border: 1px solid #c59b27 !important;
+      font-size: 10pt !important;
+      page-break-inside: avoid !important;
+    }
+    .print-table {
+      width: 100% !important;
+      border-collapse: collapse !important;
+      margin-top: 10px !important;
+      font-size: 9.5pt !important;
+    }
+    .print-table th, .print-table td {
+      border: 1px solid #d4c7b5 !important;
+      padding: 6px 8px !important;
+      text-align: left !important;
+    }
+    .print-table th {
+      background: #f4ede2 !important;
+      color: #382012 !important;
+      font-weight: bold !important;
+    }
+    .print-table tr:nth-child(even) {
+      background: #faf7f2 !important;
+    }
+  }
+  #printReportContainer { display: none; }
+  #legendPrint { display: none; }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
 
 <header>
-  <h1>Carte de points</h1>
-  <div class="sub">saisie manuelle ou import Excel — regroupement par couleur et forme</div>
+  <div class="header-brand">
+    <div class="header-logo">📍</div>
+    <div>
+      <h1>Carte & Territoires</h1>
+      <div class="sub">Zones de concentration, contours administratifs & export sélectif</div>
+    </div>
+  </div>
+  <div class="header-badges">
+    <span id="headerPointsCount" class="header-pill">0 point</span>
+    <button id="headerTogglePanel" class="header-mobile-toggle" type="button">⚙️ Panneau</button>
+  </div>
 </header>
-<div id="banner">Le géocodage nécessite une connexion internet. Pour l'installer comme une application : menu du navigateur → « Ajouter à l'écran d'accueil » (iPhone/Android) ou icône d'installation dans la barre d'adresse (ordinateur).</div>
 
 <main>
+  <!-- Volet Latéral -->
   <div id="panel">
+    <div class="panel-content">
 
-    <h2 class="section">source des adresses</h2>
-    <div class="tabs">
-      <button class="tab-btn active" id="tabManualBtn">Saisie manuelle</button>
-      <button class="tab-btn" id="tabExcelBtn">Import Excel</button>
-    </div>
+      <!-- 1. SAISIE & IMPORT -->
+      <div class="panel-card active-card" id="cardInput">
+        <div class="card-header" onclick="toggleCard('cardInput')">
+          <div class="card-header-title">
+            <span class="icon-badge">✍️</span>
+            <span>1. Saisie & Import des Adresses</span>
+          </div>
+          <span class="card-header-arrow">▼</span>
+        </div>
+        <div class="card-body">
+          <div class="sub-tabs">
+            <button class="sub-tab-btn active" id="tabBtnManual" type="button">Saisie manuelle</button>
+            <button class="sub-tab-btn" id="tabBtnExcel" type="button">Fichier Excel / CSV</button>
+          </div>
 
-    <div class="tabpane active" id="tabManual">
-      <label for="addresses">une ligne par adresse — format : Adresse ; Groupe ; Libellé (optionnels)</label>
-      <textarea id="addresses" placeholder="12 rue de la Paix, 75002 Paris; Tribu Juda; Réunion mensuelle&#10;Mairie de Lyon; Tribu Benjamin&#10;9 avenue de l'Europe, 94320 Thiais"></textarea>
-      <div class="btn-row">
-        <button id="runManual">Placer sur la carte</button>
-        <button id="clearManual" class="secondary">Effacer</button>
-      </div>
-    </div>
+          <div id="paneManual" style="display:flex; flex-direction:column; gap:8px;">
+            <label for="addressesInput">Adresses (1 par ligne : Adresse ; Groupe ; Libellé)</label>
+            <textarea id="addressesInput" placeholder="12 rue de la Paix, Paris ; Groupe A ; Siège&#10;Place Bellecour, Lyon ; Groupe B ; Agence&#10;Vieux-Port, Marseille ; Groupe A ; Bureau"></textarea>
+            <div class="btn-row">
+              <button id="btnRunManual" class="primary-marron" type="button">📍 Placer sur la carte</button>
+              <button id="btnClearManual" class="secondary" type="button">Effacer</button>
+            </div>
+          </div>
 
-    <div class="tabpane" id="tabExcel">
-      <label for="excelFile">fichier Excel ou CSV</label>
-      <input type="file" id="excelFile" accept=".xlsx,.xls,.csv">
-      <div class="hint">La première ligne doit contenir les en-têtes de colonnes. Associe ensuite les colonnes ci-dessous.</div>
-      <div id="mappingArea" style="display:none; flex-direction:column; gap:8px;">
-        <div class="mapping-row"><label>Adresse *</label><select id="mapAdresse"></select></div>
-        <div class="mapping-row"><label>Groupe</label><select id="mapGroupe"></select></div>
-        <div class="mapping-row"><label>Libellé</label><select id="mapLibelle"></select></div>
-        <div class="btn-row">
-          <button id="runExcel">Placer sur la carte</button>
-          <button id="clearExcel" class="secondary">Effacer</button>
+          <div id="paneExcel" style="display:none; flex-direction:column; gap:8px;">
+            <label for="excelFileInput">Fichier (.xlsx, .xls, .csv)</label>
+            <input type="file" id="excelFileInput" accept=".xlsx,.xls,.csv">
+            <div id="excelMapping" style="display:none; flex-direction:column; gap:6px;">
+              <div style="display:flex; gap:6px; align-items:center;">
+                <label style="width:70px;">Adresse *</label>
+                <select id="mapColAddr"></select>
+              </div>
+              <div style="display:flex; gap:6px; align-items:center;">
+                <label style="width:70px;">Groupe</label>
+                <select id="mapColGroup"></select>
+              </div>
+              <div style="display:flex; gap:6px; align-items:center;">
+                <label style="width:70px;">Libellé</label>
+                <select id="mapColLabel"></select>
+              </div>
+              <div class="btn-row" style="margin-top:4px;">
+                <button id="btnRunExcel" class="primary-marron" type="button">📍 Placer les adresses</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="checkbox-group">
+            <input type="checkbox" id="autoGroupCity">
+            <label for="autoGroupCity">Regrouper automatiquement par commune / arrondissement</label>
+          </div>
+          <div id="geocodingStatus" class="hint" style="font-weight:600; color:var(--marron-base);"></div>
         </div>
       </div>
+
+      <!-- 2. CONTOURS RÉGIONS & DÉPARTEMENTS + FOCUS -->
+      <div class="panel-card" id="cardBoundaries">
+        <div class="card-header" onclick="toggleCard('cardBoundaries')">
+          <div class="card-header-title pourpre">
+            <span class="icon-badge">🌐</span>
+            <span>2. Contours & Focus Administratif</span>
+          </div>
+          <span class="card-header-arrow">▼</span>
+        </div>
+        <div class="card-body">
+          <div class="hint">Mettez en surbrillance les contours des <strong>Régions</strong> ou <strong>Départements</strong> et isolez un territoire en mode Focus.</div>
+          
+          <div class="sub-tabs">
+            <button class="sub-tab-btn active" id="tabBoundariesRegion" type="button">Régions (France)</button>
+            <button class="sub-tab-btn" id="tabBoundariesDept" type="button">Départements (101)</button>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <label id="boundarySelectLabel">Choisir un territoire :</label>
+            <select id="selectBoundaryTerritory">
+              <option value="">-- Sélectionner un territoire --</option>
+            </select>
+          </div>
+
+          <div class="btn-row">
+            <button id="btnToggleAllContours" class="primary-pourpre" type="button">✨ Surbrillance des contours</button>
+            <button id="btnFocusTerritory" class="primary-or" type="button">🎯 Isoler (Focus)</button>
+            <button id="btnPrintTerritory" class="primary-marron" type="button" title="Imprimer la carte du territoire et la liste des adresses">🖨️ Imprimer le territoire</button>
+            <button id="btnClearFocus" class="secondary" type="button" style="display:none;">✕ Annuler le focus</button>
+          </div>
+
+          <div id="focusInfoBanner" class="focus-banner" style="display:none;">
+            <div class="focus-banner-txt">
+              <strong id="focusTerritoryName">Région</strong>
+              <div id="focusTerritoryCount">0 point(s) situé(s) dans ce périmètre</div>
+            </div>
+            <div style="display:flex; gap:4px;">
+              <button id="btnListFocusPoints" class="secondary" type="button" style="padding:4px 8px; font-size:0.74rem;">📋 Liste</button>
+              <button id="btnPrintFocusBanner" class="primary-marron" type="button" style="padding:4px 8px; font-size:0.74rem;">🖨️ Imprimer</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. ZONE PAR POINT CENTRAL (RAYON SANS LIMITE) -->
+      <div class="panel-card" id="cardRadial">
+        <div class="card-header" onclick="toggleCard('cardRadial')">
+          <div class="card-header-title">
+            <span class="icon-badge">📍</span>
+            <span>3. Zone Radiale & Rayon (Sans limite)</span>
+          </div>
+          <span class="card-header-arrow">▼</span>
+        </div>
+        <div class="card-body">
+          <div class="hint">Tracez un rayon circulaire personnalisable (de 100 m à 500 km) autour d'une station, adresse ou clic.</div>
+
+          <div class="sub-tabs">
+            <button class="sub-tab-btn active" data-type="station" id="rTabStation" type="button">🚇 Station</button>
+            <button class="sub-tab-btn" data-type="address" id="rTabAddress" type="button">🏠 Adresse</button>
+            <button class="sub-tab-btn" data-type="point" id="rTabPoint" type="button">📌 Point</button>
+            <button class="sub-tab-btn" data-type="map" id="rTabMap" type="button">🗺️ Clic carte</button>
+          </div>
+
+          <!-- Choix du centre -->
+          <div id="rPaneStation" style="display:flex; gap:6px;">
+            <input type="text" id="radialStationInput" placeholder="Ex: Châtelet, Gare de Lyon, Part-Dieu...">
+            <button id="radialStationSearchBtn" class="secondary" type="button">Chercher</button>
+          </div>
+          <div id="radialStationResults" style="display:none; flex-direction:column; max-height:120px; overflow-y:auto; border:1px solid var(--line); border-radius:4px; background:#fff;"></div>
+
+          <div id="rPaneAddress" style="display:none; gap:6px;">
+            <input type="text" id="radialAddressInput" placeholder="Ex: 10 rue de la République, Lyon...">
+            <button id="radialAddressSearchBtn" class="secondary" type="button">Valider</button>
+          </div>
+
+          <div id="rPanePoint" style="display:none;">
+            <select id="radialPointSelect">
+              <option value="">-- Sélectionner une adresse déjà placée --</option>
+            </select>
+          </div>
+
+          <div id="rPaneMap" style="display:none;">
+            <button id="radialPickMapBtn" class="secondary" type="button" style="width:100%;">🎯 Cliquer sur la carte pour poser le centre</button>
+          </div>
+
+          <!-- Centre Sélectionné -->
+          <div id="radialCenterBadge" class="zone-card" style="display:none; border-left:4px solid var(--marron-base); background:#fff;">
+            <div>
+              <div id="radialCenterName" class="zone-card-title">Centre sélectionné</div>
+              <div id="radialCenterCoords" class="zone-card-sub">0.0, 0.0</div>
+            </div>
+            <button id="radialClearCenterBtn" class="secondary" type="button" style="padding:2px 6px;">✕</button>
+          </div>
+
+          <!-- Rayon & Presets Étendus -->
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <label>Rayon de la zone :</label>
+              <div style="display:flex; align-items:center; gap:4px;">
+                <input type="number" id="radialKmInput" min="0.1" max="1000" step="0.5" value="5" style="width:65px; padding:2px 4px; font-weight:700; text-align:right;">
+                <span style="font-size:0.75rem; font-weight:700; color:var(--marron-base);">km</span>
+              </div>
+            </div>
+            <input type="range" id="radialDistSlider" min="100" max="200000" step="500" value="5000" style="width:100%; accent-color:var(--marron-base); margin:6px 0;">
+            <div class="preset-pills">
+              <button type="button" class="dist-pill" data-dist="1000">1 km</button>
+              <button type="button" class="dist-pill" data-dist="2000">2 km</button>
+              <button type="button" class="dist-pill active" data-dist="5000">5 km</button>
+              <button type="button" class="dist-pill" data-dist="10000">10 km</button>
+              <button type="button" class="dist-pill" data-dist="25000">25 km</button>
+              <button type="button" class="dist-pill" data-dist="50000">50 km</button>
+              <button type="button" class="dist-pill" data-dist="100000">100 km</button>
+            </div>
+          </div>
+
+          <div>
+            <label for="radialZoneName">Nom de la zone :</label>
+            <input type="text" id="radialZoneName" placeholder="Ex: Zone Rayon 5 km">
+          </div>
+
+          <button id="btnCreateRadialZone" class="primary-or" type="button" style="width:100%;">⚡ Créer la zone & Voir les points</button>
+
+          <!-- Liste des zones créées -->
+          <div id="radialZonesListContainer" style="display:none; flex-direction:column; gap:6px; margin-top:4px;">
+            <label>Zones créées :</label>
+            <div id="radialZonesList" style="display:flex; flex-direction:column; gap:4px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. ZONES DE CONCENTRATION (DENSIFICATION) -->
+      <div class="panel-card" id="cardClustering">
+        <div class="card-header" onclick="toggleCard('cardClustering')">
+          <div class="card-header-title">
+            <span class="icon-badge">🎯</span>
+            <span>4. Zones de Concentration (Densité)</span>
+          </div>
+          <span class="card-header-arrow">▼</span>
+        </div>
+        <div class="card-body">
+          <div class="hint">Regroupe automatiquement les adresses proches les unes des autres et affiche les zones de densité sur la carte.</div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <label>Distance maximale entre adresses :</label>
+            <span id="clusterDistTxt" style="font-size:0.80rem; font-weight:800; color:var(--pourpre-dark);">2.0 km</span>
+          </div>
+          <input type="range" id="clusterDistSlider" min="200" max="50000" step="200" value="2000" style="width:100%; accent-color:var(--pourpre-base);">
+          <div class="preset-pills">
+            <button type="button" class="dist-pill" data-cdist="500">500 m</button>
+            <button type="button" class="dist-pill" data-cdist="1000">1 km</button>
+            <button type="button" class="dist-pill active" data-cdist="2000">2 km</button>
+            <button type="button" class="dist-pill" data-cdist="5000">5 km</button>
+            <button type="button" class="dist-pill" data-cdist="10000">10 km</button>
+          </div>
+
+          <div class="btn-row" style="margin-top:6px;">
+            <button id="btnRunClustering" class="primary-pourpre" type="button" style="width:100%;">⚡ Détecter & Afficher les zones sur la carte</button>
+          </div>
+          <div class="btn-row" style="margin-top:2px;">
+            <button id="btnClearClustering" class="secondary" type="button" style="width:100%;">✕ Effacer les zones de densité</button>
+          </div>
+
+          <div id="clusterSummaryTxt" class="hint" style="font-weight:600; color:var(--text-main); margin-top:4px;"></div>
+
+          <!-- Liste détaillée des zones de densité détectées -->
+          <div id="clusterZonesListContainer" style="display:none; flex-direction:column; gap:6px; margin-top:6px;">
+            <label>Zones de concentration détectées :</label>
+            <div id="clusterZonesList" style="display:flex; flex-direction:column; gap:4px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. LÉGENDE & PERSONNALISATION -->
+      <div class="panel-card" id="cardLegend">
+        <div class="card-header" onclick="toggleCard('cardLegend')">
+          <div class="card-header-title">
+            <span class="icon-badge">🏷️</span>
+            <span>5. Légende & Personnalisation</span>
+          </div>
+          <span class="card-header-arrow">▼</span>
+        </div>
+        <div class="card-body">
+          <div class="hint">Modifiez les formes, couleurs et noms de groupes, ou cliquez sur 📋 pour lister les adresses de chaque groupe.</div>
+          <div id="legendList" style="display:flex; flex-direction:column; gap:4px;">
+            <span class="hint">Placez des adresses pour faire apparaître la légende.</span>
+          </div>
+          <div class="btn-row" style="margin-top:6px;">
+            <button id="btnToggleMapLabels" class="secondary" type="button">Afficher les libellés sur la carte</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6. TRANSPORTS EN COMMUN -->
+      <div class="panel-card" id="cardTransit">
+        <div class="card-header" onclick="toggleCard('cardTransit')">
+          <div class="card-header-title">
+            <span class="icon-badge">🚆</span>
+            <span>6. Transports en Commun</span>
+          </div>
+          <span class="card-header-arrow">▼</span>
+        </div>
+        <div class="card-body">
+          <div class="hint">Affiche les arrêts et gares en temps réel autour de votre vue ou de vos adresses.</div>
+          <button id="btnToggleTransit" class="secondary" type="button" style="width:100%;">Afficher les stations (Métro, RER, Tram, Train, Bus)</button>
+          <div class="btn-row" style="margin-top:4px;">
+            <button id="btnZoomToPointsTransit" class="secondary" type="button" style="width:100%; font-size:0.72rem;">🎯 Centrer sur mes adresses</button>
+          </div>
+          <div id="transitStatus" class="hint" style="margin-top:4px;"></div>
+        </div>
+      </div>
+
+      <!-- 7. EXPORT SÉLECTIF -->
+      <div class="panel-card" id="cardExport">
+        <div class="card-header" onclick="toggleCard('cardExport')">
+          <div class="card-header-title pourpre">
+            <span class="icon-badge">📐</span>
+            <span>7. Export Sélectif de Zone</span>
+          </div>
+          <span class="card-header-arrow">▼</span>
+        </div>
+        <div class="card-body">
+          <div class="hint">Sélectionnez la zone spécifique que vous souhaitez imprimer (carte + tableau d'adresses), sauvegarder en image PNG ou exporter en CSV.</div>
+
+          <label>Périmètre d'exportation :</label>
+          <select id="exportScopeSelect">
+            <option value="all">🌍 Toute la carte (vue actuelle)</option>
+            <option value="box">📐 Cadre rectangulaire tracé sur la carte</option>
+            <optgroup label="Territoires Administratifs" id="exportTerritoriesOptGroup"></optgroup>
+            <optgroup label="Zones & Groupes" id="exportZonesOptGroup"></optgroup>
+          </select>
+
+          <div id="exportBoxControl" style="display:none; background:var(--or-bg); border:1px dashed var(--or-base); padding:8px 10px; border-radius:4px; margin-top:6px;">
+            <div style="font-size:0.75rem; font-weight:700; color:var(--marron-dark); margin-bottom:4px;">Cadre de sélection d'emprise :</div>
+            <div class="btn-row">
+              <button id="btnDrawExportBox" class="primary-or" type="button" style="flex:1; font-size:0.75rem;">✏️ Tracer le cadre</button>
+              <button id="btnClearExportBox" class="secondary" type="button" style="padding:4px 8px; font-size:0.75rem;" title="Supprimer le cadre">✕</button>
+            </div>
+            <div id="exportBoxInfo" class="hint" style="margin-top:4px; font-weight:600;">Cliquez sur 2 points de la carte pour définir les coins opposés.</div>
+            <div id="exportBoxActions" style="display:none; margin-top:6px; gap:4px; flex-direction:column;">
+              <button id="btnZoomToBox" class="secondary" type="button" style="font-size:0.72rem; padding:3px 6px;">🎯 Recentrer sur le cadre</button>
+            </div>
+          </div>
+
+          <div class="btn-row" style="margin-top:8px;">
+            <button id="btnExportPrint" class="primary-marron" type="button">🖨️ Imprimer / PDF (Carte + Liste)</button>
+            <button id="btnExportImage" class="primary-pourpre" type="button">🖼️ Image PNG</button>
+            <button id="btnExportCsv" class="secondary" type="button">📊 CSV filtré</button>
+          </div>
+        </div>
+      </div>
+
     </div>
-
-    <div class="checkbox-row">
-      <input type="checkbox" id="autoGroupCity">
-      <label for="autoGroupCity">Regrouper automatiquement par ville / arrondissement</label>
-    </div>
-
-    <div id="status"></div>
-    <div id="list"></div>
-
-    <h2 class="section">légende (couleurs et formes)</h2>
-    <div class="hint">Clique sur un point de la carte pour modifier son libellé ou son groupe directement.</div>
-    <div id="legend"><span class="hint">La légende apparaît une fois des points placés — modifie couleur, forme et libellé de chaque groupe.</span></div>
-    <button id="toggleLabels" class="secondary">Afficher les libellés sur la carte</button>
-
-    <h2 class="section">export</h2>
-    <div class="btn-row">
-      <button id="exportPrint">Imprimer / PDF</button>
-      <button id="exportCsv" class="secondary">Exporter en CSV</button>
-    </div>
-    <div class="hint">« Imprimer / PDF » ouvre la boîte d'impression du navigateur — choisis « Enregistrer au format PDF » pour obtenir une image de la carte avec sa légende.</div>
   </div>
+
+  <!-- Carte Leaflet -->
   <div id="map"></div>
+
+  <!-- Badge Flottant Mode Focus ou Zone -->
+  <div id="floatingFocusBadge" class="map-floating-badge" style="display:none;">
+    <span id="floatingFocusTitle">Focus Territoire</span>
+    <button id="btnFloatingListPoints" class="primary-pourpre" type="button">📋 Voir points</button>
+    <button id="btnFloatingPrint" class="primary-marron" type="button">🖨️ Imprimer</button>
+    <button id="btnFloatingClearFocus" class="secondary" type="button">✕ Quitter</button>
+  </div>
 </main>
 
-<div id="legendPrint"></div>
+<!-- RAPPORTS IMPRIMABLES (Générés dynamiquement lors de l'impression) -->
+<div id="printReportContainer">
+  <div id="printHeader" style="margin-bottom:12px; border-bottom:2px solid #382012; padding-bottom:8px;">
+    <h1 id="printReportTitle" style="margin:0; font-family:Georgia,serif; font-size:18pt; color:#382012;">Rapport Cartographique</h1>
+    <div id="printReportSubtitle" style="font-size:10pt; color:#555; margin-top:4px;">Date d'édition : <span id="printReportDate"></span> · <span id="printReportCount">0 adresse(s)</span></div>
+  </div>
+  <div id="legendPrint"></div>
+  <div id="printTableContainer"></div>
+</div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script>
-  const map = L.map('map', { zoomControl: true }).setView([46.6, 2.4], 6);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-    attribution: '&copy; OpenStreetMap contributors'
-  }).addTo(map);
-
-  const PALETTE = ['#a2482f','#3f6b4c','#41564f','#8a6d3b','#5b4b8a','#2f6f8a','#8a2f56','#6f8a2f','#4b5b8a','#8a5b2f'];
-  const SHAPES = ['circle','square','triangle','diamond','star'];
-
-  let entries = [];      // {id, address, group, label, lat, lon, status, marker, error}
-  let groupsMeta = {};   // groupKey -> {color, shape, displayLabel}
-  let idCounter = 0;
-  let showLabels = false;
-
-  const statusEl = document.getElementById('status');
-  const listEl = document.getElementById('list');
-  const legendEl = document.getElementById('legend');
-  const legendPrintEl = document.getElementById('legendPrint');
-
-  // ---------- Tabs ----------
-  const tabManualBtn = document.getElementById('tabManualBtn');
-  const tabExcelBtn = document.getElementById('tabExcelBtn');
-  const tabManual = document.getElementById('tabManual');
-  const tabExcel = document.getElementById('tabExcel');
-  tabManualBtn.addEventListener('click', () => {
-    tabManualBtn.classList.add('active'); tabExcelBtn.classList.remove('active');
-    tabManual.classList.add('active'); tabExcel.classList.remove('active');
-  });
-  tabExcelBtn.addEventListener('click', () => {
-    tabExcelBtn.classList.add('active'); tabManualBtn.classList.remove('active');
-    tabExcel.classList.add('active'); tabManual.classList.remove('active');
-  });
-
-  // ---------- Shape rendering ----------
-  function shapeSvg(shape, color){
-    const s = 26;
-    const stroke = '#1c2b28';
-    switch(shape){
-      case 'square':
-        return `<svg width="${s}" height="${s}"><rect x="4" y="4" width="18" height="18" fill="${color}" stroke="${stroke}" stroke-width="2"/></svg>`;
-      case 'triangle':
-        return `<svg width="${s}" height="${s}"><polygon points="13,3 24,23 2,23" fill="${color}" stroke="${stroke}" stroke-width="2"/></svg>`;
-      case 'diamond':
-        return `<svg width="${s}" height="${s}"><polygon points="13,2 24,13 13,24 2,13" fill="${color}" stroke="${stroke}" stroke-width="2"/></svg>`;
-      case 'star':
-        return `<svg width="${s}" height="${s}"><polygon points="13,1 16,9 25,9 17.5,14.5 20.5,23 13,17.5 5.5,23 8.5,14.5 1,9 10,9" fill="${color}" stroke="${stroke}" stroke-width="1.5"/></svg>`;
-      case 'circle':
-      default:
-        return `<svg width="${s}" height="${s}"><circle cx="13" cy="13" r="10" fill="${color}" stroke="${stroke}" stroke-width="2"/></svg>`;
-    }
-  }
-
-  function iconFor(group){
-    const meta = groupsMeta[group];
-    return L.divIcon({
-      html: shapeSvg(meta.shape, meta.color),
-      className: '',
-      iconSize: [26,26],
-      iconAnchor: [13,13],
-      popupAnchor: [0,-13]
-    });
-  }
-
-  function ensureGroupMeta(group){
-    if(groupsMeta[group]) return;
-    const n = Object.keys(groupsMeta).length;
-    groupsMeta[group] = {
-      color: PALETTE[n % PALETTE.length],
-      shape: SHAPES[n % SHAPES.length],
-      displayLabel: group
-    };
-  }
-
-  function renderLegend(){
-    const keys = Object.keys(groupsMeta);
-    if(!keys.length){
-      legendEl.innerHTML = '<span class="hint">La légende apparaît une fois des points placés — modifie couleur, forme et libellé de chaque groupe.</span>';
-      legendPrintEl.innerHTML = '';
-      return;
-    }
-    legendEl.innerHTML = '';
-    legendPrintEl.innerHTML = '';
-    keys.forEach(key => {
-      const meta = groupsMeta[key];
-      const row = document.createElement('div');
-      row.className = 'legend-item';
-      row.innerHTML = `
-        <span class="swatch">${shapeSvg(meta.shape, meta.color)}</span>
-        <select class="shape-select" data-group="${key}">
-          ${SHAPES.map(s => `<option value="${s}" ${s===meta.shape?'selected':''}>${s}</option>`).join('')}
-        </select>
-        <input type="color" data-group="${key}" value="${meta.color}">
-        <input type="text" data-group="${key}" value="${meta.displayLabel}">
-      `;
-      legendEl.appendChild(row);
-
-      const printItem = document.createElement('div');
-      printItem.className = 'pitem';
-      printItem.innerHTML = `<span class="psw">${shapeSvg(meta.shape, meta.color)}</span><span>${meta.displayLabel}</span>`;
-      legendPrintEl.appendChild(printItem);
-    });
-
-    legendEl.querySelectorAll('select.shape-select').forEach(sel => {
-      sel.addEventListener('change', e => {
-        const g = e.target.dataset.group;
-        groupsMeta[g].shape = e.target.value;
-        refreshGroupMarkers(g);
-        renderLegend();
-      });
-    });
-    legendEl.querySelectorAll('input[type=color]').forEach(inp => {
-      inp.addEventListener('input', e => {
-        const g = e.target.dataset.group;
-        groupsMeta[g].color = e.target.value;
-        refreshGroupMarkers(g);
-        renderLegend();
-      });
-    });
-    legendEl.querySelectorAll('input[type=text]').forEach(inp => {
-      inp.addEventListener('change', e => {
-        const g = e.target.dataset.group;
-        groupsMeta[g].displayLabel = e.target.value || g;
-        renderLegend();
-        entries.filter(en => en.group === g && en.marker).forEach(en => {
-          en.marker.setPopupContent(popupHtml(en));
-        });
-      });
-    });
-  }
-
-  function refreshGroupMarkers(group){
-    entries.filter(en => en.group === group && en.marker).forEach(en => {
-      en.marker.setIcon(iconFor(group));
-    });
-  }
-
-  function escAttr(s){ return String(s).replace(/"/g,'&quot;'); }
-
-  function popupHtml(entry){
-    const meta = groupsMeta[entry.group] || { displayLabel: entry.group };
-    return `
-      <div class="popup-edit" data-id="${entry.id}">
-        <div class="current"><strong>${entry.label}</strong><br>${entry.address}<br><em>${meta.displayLabel}</em></div>
-        <hr>
-        <label>Libellé</label>
-        <input type="text" class="popupLabel" value="${escAttr(entry.label)}">
-        <label>Groupe</label>
-        <input type="text" class="popupGroup" list="groupsDatalist-${entry.id}" value="${escAttr(meta.displayLabel)}">
-        <datalist id="groupsDatalist-${entry.id}">
-          ${Object.keys(groupsMeta).map(k => `<option value="${escAttr(groupsMeta[k].displayLabel)}">`).join('')}
-        </datalist>
-        <button class="popupSave" type="button">Enregistrer</button>
+<!-- MODALE UNIVERSELLE : LISTE DES POINTS D'UNE ZONE -->
+<div id="zonePointsModal" class="zone-modal-backdrop" style="display:none;" role="dialog" aria-modal="true">
+  <div class="zone-modal-card">
+    <div class="zone-modal-header">
+      <div>
+        <h3 id="modalZoneTitle">Liste des points de la zone</h3>
+        <div id="modalZoneSubtitle" class="subt">0 adresse dans cette zone</div>
       </div>
-    `;
+      <button type="button" id="modalCloseBtn" class="zone-modal-close" title="Fermer">✕</button>
+    </div>
+
+    <div class="zone-modal-search">
+      <input type="text" id="modalSearchInput" placeholder="🔍 Filtrer par libellé ou adresse...">
+    </div>
+
+    <div id="modalPointsContainer" class="zone-modal-list">
+      <!-- Rempli dynamiquement -->
+    </div>
+
+    <div class="zone-modal-footer">
+      <button id="modalCopyBtn" class="secondary" type="button">📋 Copier la liste</button>
+      <button id="modalExportCsvBtn" class="secondary" type="button">💾 Télécharger CSV</button>
+      <button id="modalDoneBtn" class="primary-marron" type="button" style="margin-left:auto;">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// =========================================================================
+// ÉTAT GLOBAL & CONFIGURATION
+// =========================================================================
+const PALETTE = ['#5c371d', '#6b21a8', '#c59b27', '#1b6b4a', '#a22f2f', '#2a5b88', '#8a4b2a', '#4b2a8a', '#787020', '#2563eb'];
+const SHAPES = ['circle', 'square', 'triangle', 'diamond', 'star'];
+
+let entries = [];        // { id, address, group, originalGroup, label, lat, lon, status, marker, locality }
+let groupsMeta = {};     // groupKey -> { color, shape, displayLabel }
+let idCounter = 0;
+let showLabels = false;
+
+// Cartes & Calques Leaflet
+const map = L.map('map', { zoomControl: true }).setView([46.6, 2.4], 6);
+const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19,
+  attribution: '&copy; OpenStreetMap'
+}).addTo(map);
+
+const clusterLayer = L.layerGroup().addTo(map);
+const radialLayer = L.layerGroup().addTo(map);
+const boundariesLayer = L.layerGroup().addTo(map);
+const focusMaskLayer = L.layerGroup().addTo(map);
+const exportBoxLayer = L.layerGroup().addTo(map);
+const transitLayer = L.layerGroup().addTo(map);
+
+// État des Régions & Focus
+let regionsGeoJson = null;
+let deptsGeoJson = null;
+let currentBoundaryMode = 'region'; // 'region' ou 'dept'
+let contoursActive = false;
+let activeFocusFeature = null;
+
+// État des Zones Radiales
+let selectedRadialCenter = null;
+let customRadialZones = []; // { id, name, center: {lat, lon, name}, radius, color, shape, points, circleLayer, centerMarker }
+
+// État du cadre d'export rectangulaire
+let exportBox = null; // L.rectangle
+let isDrawingExportBox = false;
+
+// =========================================================================
+// GESTION DE L'ACCORDÉON DE L'INTERFACE
+// =========================================================================
+function toggleCard(cardId) {
+  const card = document.getElementById(cardId);
+  if (!card) return;
+  card.classList.toggle('collapsed');
+}
+
+// Bascule mobile du panneau
+const headerTogglePanel = document.getElementById('headerTogglePanel');
+const panel = document.getElementById('panel');
+if (headerTogglePanel) {
+  headerTogglePanel.addEventListener('click', () => {
+    panel.classList.toggle('mobile-open');
+  });
+}
+
+function updateHeaderPointsCount() {
+  const placed = entries.filter(e => e.marker);
+  const count = placed.length;
+  const countEl = document.getElementById('headerPointsCount');
+  if (countEl) countEl.textContent = `${count} point${count > 1 ? 's' : ''}`;
+  updateExportSelect();
+}
+
+// =========================================================================
+// SYMBOLES VECTORIELS SVG
+// =========================================================================
+function shapeSvg(shape, color) {
+  const s = 24;
+  const stroke = '#2b1b12';
+  switch (shape) {
+    case 'square':
+      return `<svg width="${s}" height="${s}"><rect x="3" y="3" width="18" height="18" fill="${color}" stroke="${stroke}" stroke-width="2" rx="2"/></svg>`;
+    case 'triangle':
+      return `<svg width="${s}" height="${s}"><polygon points="12,2 22,22 2,22" fill="${color}" stroke="${stroke}" stroke-width="2"/></svg>`;
+    case 'diamond':
+      return `<svg width="${s}" height="${s}"><polygon points="12,2 22,12 12,22 2,12" fill="${color}" stroke="${stroke}" stroke-width="2"/></svg>`;
+    case 'star':
+      return `<svg width="${s}" height="${s}"><polygon points="12,1 15,8 23,8 16,13 19,21 12,16 5,21 8,13 1,8 9,8" fill="${color}" stroke="${stroke}" stroke-width="1.5"/></svg>`;
+    case 'circle':
+    default:
+      return `<svg width="${s}" height="${s}"><circle cx="12" cy="12" r="9.5" fill="${color}" stroke="${stroke}" stroke-width="2"/></svg>`;
   }
+}
 
-  function findGroupKeyByDisplayLabel(label){
-    const trimmed = label.trim();
-    if(!trimmed) return null;
-    const existing = Object.keys(groupsMeta).find(k => groupsMeta[k].displayLabel === trimmed);
-    return existing || trimmed; // reuse existing group if the label matches, otherwise treat as a new group key
-  }
+function iconFor(group) {
+  const meta = groupsMeta[group] || { shape: 'circle', color: '#5c371d' };
+  return L.divIcon({
+    html: shapeSvg(meta.shape, meta.color),
+    className: '',
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
+    popupAnchor: [0, -12]
+  });
+}
 
-  function cleanupUnusedGroups(){
-    Object.keys(groupsMeta).forEach(g => {
-      const stillUsed = entries.some(en => en.status === 'ok' && en.group === g);
-      if(!stillUsed) delete groupsMeta[g];
-    });
-  }
+function ensureGroupMeta(group) {
+  if (groupsMeta[group]) return;
+  const n = Object.keys(groupsMeta).length;
+  groupsMeta[group] = {
+    color: PALETTE[n % PALETTE.length],
+    shape: SHAPES[n % SHAPES.length],
+    displayLabel: group
+  };
+}
 
-  function updateEntry(id, newLabel, newGroupLabel){
-    const entry = entries.find(en => en.id === id);
-    if(!entry) return;
-    const oldGroup = entry.group;
-    entry.label = newLabel.trim() || entry.address;
-    const groupKey = findGroupKeyByDisplayLabel(newGroupLabel) || 'Sans groupe';
-    entry.group = groupKey;
-    ensureGroupMeta(groupKey);
-    if(!groupsMeta[groupKey].displayLabel || groupsMeta[groupKey].displayLabel === groupKey){
-      groupsMeta[groupKey].displayLabel = newGroupLabel.trim() || groupKey;
-    }
-    if(entry.marker){
-      entry.marker.setIcon(iconFor(entry.group));
-      entry.marker.setPopupContent(popupHtml(entry));
-      if(entry.marker.getTooltip()) entry.marker.setTooltipContent(entry.label);
-    }
-    if(oldGroup !== entry.group) cleanupUnusedGroups();
-    renderLegend();
-  }
+// =========================================================================
+// GÉOCODAGE & PLACEMENT DES ADRESSES
+// =========================================================================
+async function geocode(address) {
+  const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&addressdetails=1&q=' + encodeURIComponent(address);
+  const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+  if (!res.ok) throw new Error('Erreur de connexion');
+  const data = await res.json();
+  if (!data.length) throw new Error('Adresse introuvable');
+  return {
+    lat: parseFloat(data[0].lat),
+    lon: parseFloat(data[0].lon),
+    details: data[0].address || null
+  };
+}
 
-  function addRow(entry){
-    const row = document.createElement('div');
-    row.className = 'row ' + (entry.status === 'ok' ? 'ok' : 'err');
-    row.innerHTML = `<span class="mark">${entry.status === 'ok' ? '●' : '✕'}</span><span class="txt">${entry.address}${entry.error ? ' — ' + entry.error : ''}</span>`;
-    listEl.appendChild(row);
-  }
+function escAttr(s) { return String(s || '').replace(/"/g, '&quot;'); }
 
-  function clearAll(){
-    entries.forEach(en => { if(en.marker) map.removeLayer(en.marker); });
-    entries = [];
-    groupsMeta = {};
-    listEl.innerHTML = '';
-    statusEl.textContent = '';
-    renderLegend();
-  }
+function popupHtml(entry) {
+  const meta = groupsMeta[entry.group] || { displayLabel: entry.group };
+  return `
+    <div style="font-family:inherit; min-width:180px;">
+      <strong style="color:var(--marron-dark); font-size:0.9rem;">${escAttr(entry.label)}</strong>
+      <div style="font-size:0.75rem; color:var(--text-muted); margin:2px 0 6px;">${escAttr(entry.address)}</div>
+      <div style="font-size:0.72rem; font-weight:700; color:var(--pourpre-dark); background:var(--pourpre-bg); padding:2px 6px; border-radius:4px; display:inline-block;">
+        Groupe : ${escAttr(meta.displayLabel)}
+      </div>
+      <div style="margin-top:8px; border-top:1px solid var(--line); padding-top:6px;">
+        <button type="button" class="primary-marron" onclick="quickCreateRadialFromPoint(${entry.lat}, ${entry.lon}, '${escAttr(entry.label)}')" style="font-size:0.72rem; padding:4px 8px; width:100%;">
+          🎯 Créer une zone autour de ce point
+        </button>
+      </div>
+    </div>
+  `;
+}
 
-  document.getElementById('clearManual').addEventListener('click', clearAll);
-  document.getElementById('clearExcel').addEventListener('click', clearAll);
+async function placeAddressList(items) {
+  if (!items.length) return;
+  const statusEl = document.getElementById('geocodingStatus');
+  const autoGroup = document.getElementById('autoGroupCity')?.checked;
 
-  // ---------- Geocoding & Localité ----------
-  function extractLocality(addressObj){
-    if(!addressObj || typeof addressObj !== 'object') return null;
-    const priority = [
-      'city_district',
-      'borough',
-      'suburb',
-      'city',
-      'town',
-      'village',
-      'municipality',
-      'county'
-    ];
-    for(const key of priority){
-      const val = addressObj[key];
-      if(val && typeof val === 'string' && val.trim()){
-        return val.trim();
-      }
-    }
-    return null;
-  }
-
-  async function geocode(address){
-    const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&addressdetails=1&q=' + encodeURIComponent(address);
-    let res;
-    try{
-      res = await fetch(url, { headers: { 'Accept': 'application/json' } });
-    }catch(e){
-      throw new Error("réseau indisponible — ouvre ce fichier dans un navigateur");
-    }
-    if(!res.ok) throw new Error('requête échouée');
-    const data = await res.json();
-    if(!data.length) throw new Error('adresse introuvable');
-    return {
-      lat: parseFloat(data[0].lat),
-      lon: parseFloat(data[0].lon),
-      addressDetails: data[0].address || null
+  let ok = 0;
+  for (let i = 0; i < items.length; i++) {
+    const it = items[i];
+    const grp = (it.group && it.group.trim()) ? it.group.trim() : 'Général';
+    const entry = {
+      id: idCounter++,
+      address: it.address,
+      group: grp,
+      originalGroup: grp,
+      label: (it.label && it.label.trim()) ? it.label.trim() : it.address,
+      status: 'pending',
+      marker: null,
+      locality: null
     };
+    entries.push(entry);
+
+    if (statusEl) statusEl.textContent = `Géocodage ${i + 1}/${items.length}...`;
+
+    try {
+      const geo = await geocode(entry.address);
+      entry.lat = geo.lat;
+      entry.lon = geo.lon;
+      entry.status = 'ok';
+
+      if (autoGroup && geo.details) {
+        const loc = geo.details.city || geo.details.town || geo.details.village || geo.details.municipality;
+        if (loc) {
+          entry.group = loc;
+          entry.originalGroup = loc;
+        }
+      }
+      ensureGroupMeta(entry.group);
+
+      entry.marker = L.marker([geo.lat, geo.lon], { icon: iconFor(entry.group) }).addTo(map);
+      entry.marker.bindPopup(popupHtml(entry));
+      if (showLabels) {
+        entry.marker.bindTooltip(entry.label, { permanent: true, direction: 'right', offset: [10, 0], className: 'map-label' });
+      }
+      ok++;
+    } catch (err) {
+      entry.status = 'err';
+      ensureGroupMeta(entry.group);
+    }
+    updateHeaderPointsCount();
+    await new Promise(r => setTimeout(r, 900)); // Respecte Nominatim
   }
 
-  async function placeList(list){
-    // list: array of {address, group, label}
-    clearAll();
-    if(!list.length){
-      statusEl.textContent = 'Aucune adresse à placer.';
-      return;
-    }
-    const autoGroup = !!document.getElementById('autoGroupCity')?.checked;
-    let done = 0, ok = 0;
-    for(const item of list){
-      const manualGroup = item.group && item.group.trim() ? item.group.trim() : 'Sans groupe';
-      const entry = {
-        id: idCounter++,
-        address: item.address,
-        group: manualGroup,
-        label: item.label && item.label.trim() ? item.label.trim() : item.address,
-        status: 'pending',
-        marker: null,
-        error: null
-      };
-      entries.push(entry);
-      statusEl.textContent = `Géocodage ${done+1}/${list.length}...`;
-      try{
-        const r = await geocode(entry.address);
-        entry.lat = r.lat;
-        entry.lon = r.lon;
-        entry.status = 'ok';
-
-        if(autoGroup){
-          const locality = extractLocality(r.addressDetails);
-          if(locality){
-            entry.group = locality;
-          }
-        }
-        ensureGroupMeta(entry.group);
-
-        entry.marker = L.marker([r.lat, r.lon], { icon: iconFor(entry.group) }).addTo(map);
-        entry.marker.bindPopup(popupHtml(entry));
-        entry.marker.on('popupopen', (ev) => {
-          const el = ev.popup.getElement();
-          if(!el) return;
-          const btn = el.querySelector('.popupSave');
-          if(!btn) return;
-          btn.addEventListener('click', () => {
-            const labelInput = el.querySelector('.popupLabel');
-            const groupInput = el.querySelector('.popupGroup');
-            updateEntry(entry.id, labelInput.value, groupInput.value);
-            entry.marker.closePopup();
-          });
-        });
-        if(showLabels){
-          entry.marker.bindTooltip(entry.label, { permanent: true, direction: 'right', offset: [12,0], className: 'map-label' });
-        }
-        ok++;
-      }catch(e){
-        entry.status = 'err';
-        entry.error = e.message;
-        ensureGroupMeta(entry.group);
-      }
-      addRow(entry);
-      done++;
-      await new Promise(r => setTimeout(r, 1000)); // respecte la politique d'usage Nominatim
-    }
-    cleanupUnusedGroups();
-    statusEl.textContent = `${ok}/${list.length} adresse(s) placée(s).`;
+  if (document.getElementById('enableClustering')?.checked) {
+    applyDistanceClustering();
+  } else {
     renderLegend();
-    const placed = entries.filter(en => en.marker);
-    if(placed.length){
-      const group = L.featureGroup(placed.map(en => en.marker));
-      map.fitBounds(group.getBounds().pad(0.2));
+  }
+
+  if (statusEl) statusEl.textContent = `✓ ${ok}/${items.length} adresse(s) placée(s) avec succès.`;
+  updateRadialPointSelect();
+
+  const placed = entries.filter(e => e.marker);
+  if (placed.length) {
+    const fg = L.featureGroup(placed.map(e => e.marker));
+    map.fitBounds(fg.getBounds().pad(0.2));
+  }
+}
+
+// Saisie Manuelle
+document.getElementById('btnRunManual')?.addEventListener('click', () => {
+  const txt = document.getElementById('addressesInput').value;
+  const lines = txt.split('\n').map(l => l.trim()).filter(Boolean);
+  const items = lines.map(line => {
+    const parts = line.split(';').map(p => p.trim());
+    return { address: parts[0], group: parts[1] || '', label: parts[2] || '' };
+  });
+  placeAddressList(items);
+});
+
+document.getElementById('btnClearManual')?.addEventListener('click', () => {
+  entries.forEach(e => { if (e.marker) map.removeLayer(e.marker); });
+  entries = [];
+  groupsMeta = {};
+  clusterLayer.clearLayers();
+  radialLayer.clearLayers();
+  customRadialZones = [];
+  renderLegend();
+  renderRadialZonesList();
+  updateHeaderPointsCount();
+  updateRadialPointSelect();
+  document.getElementById('geocodingStatus').textContent = '';
+});
+
+// Onglets Saisie Manuelle / Excel
+document.getElementById('tabBtnManual')?.addEventListener('click', () => {
+  document.getElementById('tabBtnManual').classList.add('active');
+  document.getElementById('tabBtnExcel').classList.remove('active');
+  document.getElementById('paneManual').style.display = 'flex';
+  document.getElementById('paneExcel').style.display = 'none';
+});
+document.getElementById('tabBtnExcel')?.addEventListener('click', () => {
+  document.getElementById('tabBtnExcel').classList.add('active');
+  document.getElementById('tabBtnManual').classList.remove('active');
+  document.getElementById('paneExcel').style.display = 'flex';
+  document.getElementById('paneManual').style.display = 'none';
+});
+
+// Import Excel
+let excelData = [];
+document.getElementById('excelFileInput')?.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    try {
+      const wb = XLSX.read(new Uint8Array(evt.target.result), { type: 'array' });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+      if (!rows.length) return;
+      excelData = rows;
+      const headers = Object.keys(rows[0]);
+      const opts = headers.map(h => `<option value="${h}">${h}</option>`).join('');
+      document.getElementById('mapColAddr').innerHTML = opts;
+      document.getElementById('mapColGroup').innerHTML = '<option value="">-- Aucun --</option>' + opts;
+      document.getElementById('mapColLabel').innerHTML = '<option value="">-- Aucun --</option>' + opts;
+      document.getElementById('excelMapping').style.display = 'flex';
+    } catch (err) {
+      alert('Erreur de lecture du fichier Excel');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+});
+
+document.getElementById('btnRunExcel')?.addEventListener('click', () => {
+  const colA = document.getElementById('mapColAddr').value;
+  const colG = document.getElementById('mapColGroup').value;
+  const colL = document.getElementById('mapColLabel').value;
+  if (!colA) return;
+  const items = excelData.map(r => ({
+    address: String(r[colA] || '').trim(),
+    group: colG ? String(r[colG] || '').trim() : '',
+    label: colL ? String(r[colL] || '').trim() : ''
+  })).filter(i => i.address);
+  placeAddressList(items);
+});
+
+// =========================================================================
+// CONTOURS RÉGIONS & DÉPARTEMENTS FRANÇAIS + MODE FOCUS (ISOLATION)
+// =========================================================================
+async function fetchFrenchBoundaries(type) {
+  const localUrl = type === 'region' ? './regions.geojson' : './departements.geojson';
+  const fallbackUrl = type === 'region'
+    ? 'https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/regions-version-simplifiee.geojson'
+    : 'https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/departements-version-simplifiee.geojson';
+  
+  try {
+    const res = await fetch(localUrl);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && Array.isArray(data.features)) return data;
+    }
+  } catch (err) {
+    console.warn('Chargement local du GeoJSON échoué, essai du miroir distant...', err);
+  }
+
+  const resFallback = await fetch(fallbackUrl);
+  if (!resFallback.ok) throw new Error('Impossible de charger les contours officiels');
+  return await resFallback.json();
+}
+
+async function initBoundariesSelect() {
+  const sel = document.getElementById('selectBoundaryTerritory');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Chargement des contours officiels...</option>';
+
+  try {
+    if (currentBoundaryMode === 'region' && !regionsGeoJson) {
+      regionsGeoJson = await fetchFrenchBoundaries('region');
+    } else if (currentBoundaryMode === 'dept' && !deptsGeoJson) {
+      deptsGeoJson = await fetchFrenchBoundaries('dept');
+    }
+
+    const data = currentBoundaryMode === 'region' ? regionsGeoJson : deptsGeoJson;
+    if (!data || !Array.isArray(data.features)) {
+      throw new Error('Données GeoJSON non valides');
+    }
+
+    const sorted = data.features.slice().sort((a, b) => {
+      const nomA = (a.properties && (a.properties.nom || a.properties.nom_region || a.properties.name)) || '';
+      const nomB = (b.properties && (b.properties.nom || b.properties.nom_region || b.properties.name)) || '';
+      return nomA.localeCompare(nomB, 'fr', { sensitivity: 'base' });
+    });
+
+    sel.innerHTML = '<option value="">-- Choisir ' + (currentBoundaryMode === 'region' ? 'une région' : 'un département') + ' --</option>' +
+      sorted.map(f => {
+        const nom = f.properties.nom || f.properties.nom_region || f.properties.name || 'Territoire';
+        const code = f.properties.code || '';
+        return `<option value="${code}">${code ? code + ' - ' : ''}${nom}</option>`;
+      }).join('');
+  } catch (e) {
+    console.error('Erreur chargement contours:', e);
+    sel.innerHTML = '<option value="">Erreur de chargement (vérifiez la connexion)</option>';
+  }
+}
+
+// Bascule Régions / Départements
+document.getElementById('tabBoundariesRegion')?.addEventListener('click', () => {
+  currentBoundaryMode = 'region';
+  document.getElementById('tabBoundariesRegion').classList.add('active');
+  document.getElementById('tabBoundariesDept').classList.remove('active');
+  document.getElementById('boundarySelectLabel').textContent = 'Choisir une région :';
+  initBoundariesSelect();
+  if (contoursActive) renderAllContours();
+});
+
+document.getElementById('tabBoundariesDept')?.addEventListener('click', () => {
+  currentBoundaryMode = 'dept';
+  document.getElementById('tabBoundariesDept').classList.add('active');
+  document.getElementById('tabBoundariesRegion').classList.remove('active');
+  document.getElementById('boundarySelectLabel').textContent = 'Choisir un département :';
+  initBoundariesSelect();
+  if (contoursActive) renderAllContours();
+});
+
+function countPointsInGeoJsonFeature(feature) {
+  const placed = entries.filter(e => e.status === 'ok' && e.lat != null && e.lon != null);
+  // Utilise un test d'intersection de bounding box + point in polygon
+  return placed.filter(p => isPointInFeature(p.lat, p.lon, feature));
+}
+
+function isPointInFeature(lat, lon, feature) {
+  const geom = feature.geometry;
+  if (!geom) return false;
+  if (geom.type === 'Polygon') {
+    return pointInPolygon([lon, lat], geom.coordinates);
+  } else if (geom.type === 'MultiPolygon') {
+    return geom.coordinates.some(poly => pointInPolygon([lon, lat], poly));
+  }
+  return false;
+}
+
+function pointInPolygon(point, vs) {
+  const x = point[0], y = point[1];
+  let inside = false;
+  const ring = vs[0]; // anneau extérieur
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = ring[i][0], yi = ring[i][1];
+    const xj = ring[j][0], yj = ring[j][1];
+    const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+function renderAllContours() {
+  boundariesLayer.clearLayers();
+  const data = currentBoundaryMode === 'region' ? regionsGeoJson : deptsGeoJson;
+  if (!data) return;
+
+  L.geoJSON(data, {
+    style: {
+      color: '#c59b27',
+      weight: 1.8,
+      opacity: 0.85,
+      fillColor: '#c59b27',
+      fillOpacity: 0.04,
+      dashArray: '4, 4'
+    },
+    onEachFeature: (feature, layer) => {
+      layer.on('mouseover', () => {
+        layer.setStyle({ weight: 3, color: '#6b21a8', fillOpacity: 0.15 });
+        const pts = countPointsInGeoJsonFeature(feature);
+        layer.bindTooltip(`<strong>${feature.properties.nom}</strong> (${feature.properties.code})<br><span>${pts.length} point(s) situé(s) ici</span>`, { className: 'region-tooltip', sticky: true }).openTooltip();
+      });
+      layer.on('mouseout', () => {
+        layer.setStyle({ weight: 1.8, color: '#c59b27', fillOpacity: 0.04 });
+      });
+      layer.on('click', () => {
+        document.getElementById('selectBoundaryTerritory').value = feature.properties.code;
+        applyTerritoryFocus(feature);
+      });
+    }
+  }).addTo(boundariesLayer);
+}
+
+document.getElementById('btnToggleAllContours')?.addEventListener('click', async () => {
+  contoursActive = !contoursActive;
+  const btn = document.getElementById('btnToggleAllContours');
+  if (contoursActive) {
+    btn.classList.add('active-btn');
+    btn.textContent = '✕ Masquer les contours';
+    if (!regionsGeoJson && currentBoundaryMode === 'region') regionsGeoJson = await fetchFrenchBoundaries('region');
+    if (!deptsGeoJson && currentBoundaryMode === 'dept') deptsGeoJson = await fetchFrenchBoundaries('dept');
+    renderAllContours();
+  } else {
+    btn.classList.remove('active-btn');
+    btn.textContent = '✨ Surbrillance des contours';
+    boundariesLayer.clearLayers();
+  }
+});
+
+// Mode Focus (Isolation de Territoire avec Masque Inversé)
+function applyTerritoryFocus(feature) {
+  if (!feature) return;
+  activeFocusFeature = feature;
+  focusMaskLayer.clearLayers();
+
+  const name = feature.properties.nom;
+  const code = feature.properties.code;
+  const insidePoints = countPointsInGeoJsonFeature(feature);
+
+  // 1. Masque inversé assombrissant l'extérieur
+  const worldMaskCoords = [
+    [[-180, -90], [180, -90], [180, 90], [-180, 90], [-180, -90]]
+  ];
+
+  // Ajoute les polygones du territoire comme trous dans le masque mondial
+  if (feature.geometry.type === 'Polygon') {
+    worldMaskCoords.push(feature.geometry.coordinates[0]);
+  } else if (feature.geometry.type === 'MultiPolygon') {
+    feature.geometry.coordinates.forEach(poly => {
+      worldMaskCoords.push(poly[0]);
+    });
+  }
+
+  // Masque semi-opaque crème/marron extérieur
+  L.polygon(worldMaskCoords.map(ring => ring.map(pt => [pt[1], pt[0]])), {
+    color: 'transparent',
+    fillColor: '#2b1b12',
+    fillOpacity: 0.42,
+    interactive: false
+  }).addTo(focusMaskLayer);
+
+  // 2. Bordure dorée/pourpre éclatante du territoire isolé
+  const territoryLayer = L.geoJSON(feature, {
+    style: {
+      color: '#d4af37',
+      weight: 3.5,
+      opacity: 1,
+      fillColor: '#6b21a8',
+      fillOpacity: 0.08
+    }
+  }).addTo(focusMaskLayer);
+
+  // 3. Zoom automatique centré sur la région isolée
+  map.fitBounds(territoryLayer.getBounds().pad(0.12));
+
+  // 4. Mise à jour de la bannière dans le panneau et sur la carte
+  const banner = document.getElementById('focusInfoBanner');
+  const floatingBadge = document.getElementById('floatingFocusBadge');
+  const clearBtn = document.getElementById('btnClearFocus');
+
+  document.getElementById('focusTerritoryName').textContent = `${name} (${code})`;
+  document.getElementById('focusTerritoryCount').textContent = `${insidePoints.length} adresse(s) dans ce périmètre`;
+  document.getElementById('floatingFocusTitle').textContent = `🎯 Focus : ${name} (${insidePoints.length} pts)`;
+
+  if (banner) banner.style.display = 'flex';
+  if (floatingBadge) floatingBadge.style.display = 'flex';
+  if (clearBtn) clearBtn.style.display = 'inline-flex';
+
+  // Clic pour voir la liste des points de la région
+  const openFocusList = () => {
+    openZoneModal(`Région / Territoire : ${name}`, insidePoints);
+  };
+  document.getElementById('btnListFocusPoints').onclick = openFocusList;
+  document.getElementById('btnFloatingListPoints').onclick = openFocusList;
+  document.getElementById('btnPrintFocusBanner').onclick = () => printTerritory(feature);
+  document.getElementById('btnFloatingPrint').onclick = () => printTerritory(feature);
+}
+
+function printTerritory(feat = null) {
+  if (!feat) {
+    const code = document.getElementById('selectBoundaryTerritory').value;
+    const data = currentBoundaryMode === 'region' ? regionsGeoJson : deptsGeoJson;
+    feat = data?.features?.find(f => f.properties.code === code) || activeFocusFeature;
+  }
+  if (!feat) {
+    alert('Veuillez sélectionner un territoire (région ou département) dans la liste.');
+    return;
+  }
+  applyTerritoryFocus(feat);
+  const nom = feat.properties.nom || feat.properties.nom_region || 'Territoire';
+  const code = feat.properties.code || '';
+  const insidePoints = countPointsInGeoJsonFeature(feat);
+  const typeLabel = currentBoundaryMode === 'region' ? 'Région' : 'Département';
+  
+  const tempL = L.geoJSON(feat);
+  const bounds = tempL.getBounds();
+
+  preparePrintReport({
+    title: `${typeLabel} : ${nom} (${code})`,
+    subtitle: `${insidePoints.length} adresse(s) répertoriée(s) dans ce périmètre administratif`,
+    points: insidePoints,
+    bounds: bounds
+  });
+}
+
+function clearTerritoryFocus() {
+  activeFocusFeature = null;
+  focusMaskLayer.clearLayers();
+  document.getElementById('focusInfoBanner').style.display = 'none';
+  document.getElementById('floatingFocusBadge').style.display = 'none';
+  document.getElementById('btnClearFocus').style.display = 'none';
+  document.getElementById('selectBoundaryTerritory').value = '';
+}
+
+document.getElementById('btnFocusTerritory')?.addEventListener('click', async () => {
+  const code = document.getElementById('selectBoundaryTerritory').value;
+  if (!code) {
+    alert('Veuillez d\'abord choisir un territoire dans la liste.');
+    return;
+  }
+  const data = currentBoundaryMode === 'region' ? regionsGeoJson : deptsGeoJson;
+  const feat = data?.features?.find(f => f.properties.code === code);
+  if (feat) applyTerritoryFocus(feat);
+});
+
+document.getElementById('btnPrintTerritory')?.addEventListener('click', () => printTerritory());
+document.getElementById('btnClearFocus')?.addEventListener('click', clearTerritoryFocus);
+document.getElementById('btnFloatingClearFocus')?.addEventListener('click', clearTerritoryFocus);
+
+// =========================================================================
+// ZONES RADIALES (RAYON SANS LIMITE DE 100M À 500KM+)
+// =========================================================================
+function haversineDist(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const toRad = Math.PI / 180;
+  const dLat = (lat2 - lat1) * toRad;
+  const dLon = (lon2 - lon1) * toRad;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * toRad) * Math.cos(lat2 * toRad) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function formatDist(m) {
+  if (m >= 1000) {
+    const km = m / 1000;
+    return (km % 1 === 0 ? km.toString() : km.toFixed(1)) + ' km';
+  }
+  return Math.round(m) + ' m';
+}
+
+function selectRadialCenter(center) {
+  selectedRadialCenter = center;
+  const badge = document.getElementById('radialCenterBadge');
+  if (!center) {
+    if (badge) badge.style.display = 'none';
+    return;
+  }
+  badge.style.display = 'flex';
+  document.getElementById('radialCenterName').textContent = center.name;
+  document.getElementById('radialCenterCoords').textContent = `${center.lat.toFixed(4)}, ${center.lon.toFixed(4)}`;
+
+  const km = parseFloat(document.getElementById('radialKmInput').value) || 5;
+  const nameInp = document.getElementById('radialZoneName');
+  if (nameInp) nameInp.value = `Zone ${center.name} (${km} km)`;
+
+  map.setView([center.lat, center.lon], Math.max(map.getZoom(), 12));
+}
+
+window.quickCreateRadialFromPoint = function(lat, lon, label) {
+  selectRadialCenter({ lat, lon, name: label });
+  toggleCard('cardRadial');
+  document.getElementById('cardRadial').scrollIntoView({ behavior: 'smooth' });
+};
+
+// Synchronisation Curseur et Saisie Numérique en km
+const radialSlider = document.getElementById('radialDistSlider');
+const radialKmInput = document.getElementById('radialKmInput');
+
+if (radialSlider && radialKmInput) {
+  radialSlider.addEventListener('input', () => {
+    const m = parseInt(radialSlider.value, 10);
+    const km = m / 1000;
+    radialKmInput.value = km;
+    updateRadialPresetActive(m);
+    if (selectedRadialCenter) {
+      document.getElementById('radialZoneName').value = `Zone ${selectedRadialCenter.name} (${formatDist(m)})`;
+    }
+  });
+
+  radialKmInput.addEventListener('input', () => {
+    const km = parseFloat(radialKmInput.value) || 1;
+    const m = km * 1000;
+    radialSlider.value = Math.min(m, 200000);
+    updateRadialPresetActive(m);
+    if (selectedRadialCenter) {
+      document.getElementById('radialZoneName').value = `Zone ${selectedRadialCenter.name} (${formatDist(m)})`;
+    }
+  });
+}
+
+function updateRadialPresetActive(m) {
+  document.querySelectorAll('#cardRadial .dist-pill').forEach(p => {
+    p.classList.toggle('active', parseInt(p.dataset.dist, 10) === m);
+  });
+}
+
+document.querySelectorAll('#cardRadial .dist-pill').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const dist = parseInt(btn.dataset.dist, 10);
+    radialSlider.value = dist;
+    radialKmInput.value = dist / 1000;
+    updateRadialPresetActive(dist);
+    if (selectedRadialCenter) {
+      document.getElementById('radialZoneName').value = `Zone ${selectedRadialCenter.name} (${formatDist(dist)})`;
+    }
+  });
+});
+
+// Création effective de la zone radiale
+document.getElementById('btnCreateRadialZone')?.addEventListener('click', () => {
+  if (!selectedRadialCenter) {
+    alert('Veuillez sélectionner un point central (station, adresse ou clic).');
+    return;
+  }
+
+  const radiusMeters = (parseFloat(radialKmInput.value) || 5) * 1000;
+  const name = document.getElementById('radialZoneName').value.trim() || `Zone ${selectedRadialCenter.name}`;
+  const zoneId = 'rad_zone_' + Date.now();
+  const color = PALETTE[(customRadialZones.length + 2) % PALETTE.length];
+
+  // Calcul des points inclus dans le rayon
+  const placed = entries.filter(e => e.status === 'ok' && e.lat != null && e.lon != null && e.marker);
+  const captured = placed.filter(p => haversineDist(selectedRadialCenter.lat, selectedRadialCenter.lon, p.lat, p.lon) <= radiusMeters);
+
+  // Cercle sur la carte
+  const circle = L.circle([selectedRadialCenter.lat, selectedRadialCenter.lon], {
+    radius: radiusMeters,
+    color: color,
+    fillColor: color,
+    fillOpacity: 0.16,
+    weight: 2.5,
+    dashArray: '5, 5'
+  }).addTo(radialLayer);
+
+  circle.bindTooltip(`<strong>${escAttr(name)}</strong><br>Rayon : ${formatDist(radiusMeters)} · ${captured.length} adresse(s) incluse(s)<br><em>(Cliquer pour voir la liste des points)</em>`, { sticky: true });
+  circle.on('click', () => {
+    openZoneModal(name, captured, { lat: selectedRadialCenter.lat, lon: selectedRadialCenter.lon });
+  });
+
+  const zoneObj = {
+    id: zoneId,
+    name: name,
+    center: { ...selectedRadialCenter },
+    radius: radiusMeters,
+    color: color,
+    points: captured,
+    circleLayer: circle
+  };
+  customRadialZones.push(zoneObj);
+
+  renderRadialZonesList();
+  updateExportSelect();
+
+  // Ouvre immédiatement la modale avec la liste des points inclus
+  openZoneModal(name, captured, { lat: selectedRadialCenter.lat, lon: selectedRadialCenter.lon });
+});
+
+function renderRadialZonesList() {
+  const container = document.getElementById('radialZonesListContainer');
+  const list = document.getElementById('radialZonesList');
+  if (!container || !list) return;
+
+  if (!customRadialZones.length) {
+    container.style.display = 'none';
+    list.innerHTML = '';
+    return;
+  }
+  container.style.display = 'flex';
+  list.innerHTML = customRadialZones.map(z => `
+    <div class="zone-card" style="border-left:4px solid ${z.color};">
+      <div style="min-width:0; flex:1;">
+        <div class="zone-card-title">${escAttr(z.name)}</div>
+        <div class="zone-card-sub">Rayon : ${formatDist(z.radius)} · ${z.points.length} adresse(s)</div>
+      </div>
+      <div style="display:flex; gap:4px;">
+        <button type="button" class="secondary" onclick="viewZonePointsById('${z.id}')" title="Lister les points">📋</button>
+        <button type="button" class="secondary" onclick="zoomToZoneById('${z.id}')" title="Recentrer">🎯</button>
+        <button type="button" class="secondary" onclick="deleteRadialZone('${z.id}')" title="Supprimer" style="color:#b91c1c;">🗑️</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+window.viewZonePointsById = function(id) {
+  const z = customRadialZones.find(item => item.id === id);
+  if (z) openZoneModal(z.name, z.points, { lat: z.center.lat, lon: z.center.lon });
+};
+
+window.zoomToZoneById = function(id) {
+  const z = customRadialZones.find(item => item.id === id);
+  if (z && z.circleLayer) map.fitBounds(z.circleLayer.getBounds().pad(0.2));
+};
+
+window.deleteRadialZone = function(id) {
+  const idx = customRadialZones.findIndex(z => z.id === id);
+  if (idx >= 0) {
+    radialLayer.removeLayer(customRadialZones[idx].circleLayer);
+    customRadialZones.splice(idx, 1);
+    renderRadialZonesList();
+    updateExportSelect();
+  }
+};
+
+// Onglets de choix du centre
+['rTabStation', 'rTabAddress', 'rTabPoint', 'rTabMap'].forEach(id => {
+  document.getElementById(id)?.addEventListener('click', (e) => {
+    document.querySelectorAll('#cardRadial .sub-tab-btn').forEach(b => b.classList.remove('active'));
+    e.target.classList.add('active');
+    const type = e.target.dataset.type;
+    document.getElementById('rPaneStation').style.display = type === 'station' ? 'flex' : 'none';
+    document.getElementById('rPaneAddress').style.display = type === 'address' ? 'flex' : 'none';
+    document.getElementById('rPanePoint').style.display = type === 'point' ? 'block' : 'none';
+    document.getElementById('rPaneMap').style.display = type === 'map' ? 'block' : 'none';
+  });
+});
+
+function updateRadialPointSelect() {
+  const sel = document.getElementById('radialPointSelect');
+  if (!sel) return;
+  const placed = entries.filter(e => e.status === 'ok' && e.lat != null && e.lon != null);
+  sel.innerHTML = '<option value="">-- Choisir une adresse déjà placée (' + placed.length + ') --</option>' +
+    placed.map(p => `<option value="${p.id}">${escAttr(p.label)} (${escAttr(p.address)})</option>`).join('');
+}
+
+document.getElementById('radialPointSelect')?.addEventListener('change', (e) => {
+  const id = parseInt(e.target.value, 10);
+  const p = entries.find(item => item.id === id);
+  if (p) selectRadialCenter({ lat: p.lat, lon: p.lon, name: p.label });
+});
+
+document.getElementById('radialPickMapBtn')?.addEventListener('click', () => {
+  map.getContainer().classList.add('map-crosshair-mode');
+  map.once('click', (e) => {
+    map.getContainer().classList.remove('map-crosshair-mode');
+    selectRadialCenter({
+      lat: e.latlng.lat,
+      lon: e.latlng.lng,
+      name: `Point [${e.latlng.lat.toFixed(3)}, ${e.latlng.lng.toFixed(3)}]`
+    });
+  });
+});
+
+document.getElementById('radialClearCenterBtn')?.addEventListener('click', () => selectRadialCenter(null));
+
+// =========================================================================
+// ZONES DE CONCENTRATION (DENSIFICATION PAR DISTANCE)
+// =========================================================================
+let detectedClusters = [];
+
+function computeConvexHull(pts) {
+  if (pts.length <= 2) return pts;
+  const sorted = pts.slice().sort((a, b) => a[0] === b[0] ? a[1] - b[1] : a[0] - b[0]);
+  const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  
+  const lower = [];
+  for (const p of sorted) {
+    while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) lower.pop();
+    lower.push(p);
+  }
+  const upper = [];
+  for (let i = sorted.length - 1; i >= 0; i--) {
+    const p = sorted[i];
+    while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) upper.pop();
+    upper.push(p);
+  }
+  upper.pop();
+  lower.pop();
+  return lower.concat(upper);
+}
+
+function applyDistanceClustering() {
+  clusterLayer.clearLayers();
+  detectedClusters = [];
+
+  const maxDist = parseInt(document.getElementById('clusterDistSlider')?.value, 10) || 2000;
+  const placed = entries.filter(e => e.status === 'ok' && e.lat != null && e.lon != null);
+
+  const summary = document.getElementById('clusterSummaryTxt');
+  const container = document.getElementById('clusterZonesListContainer');
+  const list = document.getElementById('clusterZonesList');
+
+  const n = placed.length;
+  if (!n) {
+    if (summary) summary.textContent = 'Placez d\'abord des adresses sur la carte pour détecter des concentrations.';
+    if (container) container.style.display = 'none';
+    return;
+  }
+
+  const adj = Array.from({ length: n }, () => []);
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      if (haversineDist(placed[i].lat, placed[i].lon, placed[j].lat, placed[j].lon) <= maxDist) {
+        adj[i].push(j);
+        adj[j].push(i);
+      }
     }
   }
 
-  // ---------- Manual input ----------
-  document.getElementById('runManual').addEventListener('click', () => {
-    const raw = document.getElementById('addresses').value;
-    const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
-    const list = lines.map(line => {
-      const parts = line.split(';').map(p => p.trim());
-      return { address: parts[0], group: parts[1] || '', label: parts[2] || '' };
-    });
-    placeList(list);
-  });
-
-  // ---------- Excel import ----------
-  let excelRows = [];
-  let excelHeaders = [];
-
-  document.getElementById('excelFile').addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if(!file) return;
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      try{
-        const data = new Uint8Array(evt.target.result);
-        const wb = XLSX.read(data, { type: 'array' });
-        const sheet = wb.Sheets[wb.SheetNames[0]];
-        const rows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
-        if(!rows.length){
-          statusEl.textContent = 'Fichier vide ou illisible.';
-          return;
+  const visited = new Array(n).fill(false);
+  const clusters = [];
+  for (let i = 0; i < n; i++) {
+    if (visited[i]) continue;
+    const comp = [];
+    const q = [i];
+    visited[i] = true;
+    while (q.length) {
+      const u = q.shift();
+      comp.push(placed[u]);
+      adj[u].forEach(v => {
+        if (!visited[v]) {
+          visited[v] = true;
+          q.push(v);
         }
-        excelRows = rows;
-        excelHeaders = Object.keys(rows[0]);
-        const opts = excelHeaders.map(h => `<option value="${h}">${h}</option>`).join('');
-        const emptyOpt = '<option value="">— aucune —</option>';
-        document.getElementById('mapAdresse').innerHTML = opts;
-        document.getElementById('mapGroupe').innerHTML = emptyOpt + opts;
-        document.getElementById('mapLibelle').innerHTML = emptyOpt + opts;
-        document.getElementById('mappingArea').style.display = 'flex';
-        statusEl.textContent = `${rows.length} ligne(s) détectée(s). Associe les colonnes ci-dessous.`;
-      }catch(err){
-        statusEl.textContent = 'Erreur de lecture du fichier : ' + err.message;
-      }
-    };
-    reader.readAsArrayBuffer(file);
-  });
-
-  document.getElementById('runExcel').addEventListener('click', () => {
-    const colA = document.getElementById('mapAdresse').value;
-    const colG = document.getElementById('mapGroupe').value;
-    const colL = document.getElementById('mapLibelle').value;
-    if(!colA){
-      statusEl.textContent = 'Choisis au minimum la colonne Adresse.';
-      return;
+      });
     }
-    const list = excelRows
-      .map(r => ({
-        address: String(r[colA] || '').trim(),
-        group: colG ? String(r[colG] || '').trim() : '',
-        label: colL ? String(r[colL] || '').trim() : ''
-      }))
-      .filter(item => item.address);
-    placeList(list);
-  });
+    clusters.push(comp);
+  }
 
-  // ---------- Toggle des libellés sur la carte ----------
-  const toggleLabelsBtn = document.getElementById('toggleLabels');
-  toggleLabelsBtn.addEventListener('click', () => {
-    showLabels = !showLabels;
-    toggleLabelsBtn.textContent = showLabels ? 'Masquer les libellés sur la carte' : 'Afficher les libellés sur la carte';
-    toggleLabelsBtn.classList.toggle('active', showLabels);
-    entries.filter(en => en.marker).forEach(en => {
-      if(showLabels){
-        en.marker.bindTooltip(en.label, { permanent: true, direction: 'right', offset: [12,0], className: 'map-label' }).openTooltip();
-      }else{
-        en.marker.unbindTooltip();
+  // Seules les concentrations d'au moins 2 points sont retenues
+  const dense = clusters.filter(c => c.length >= 2).sort((a, b) => b.length - a.length);
+
+  if (!dense.length) {
+    if (summary) summary.textContent = `Aucune concentration d'au moins 2 adresses détectée à moins de ${formatDist(maxDist)}. Augmentez la distance maximale pour élargir la zone.`;
+    if (container) container.style.display = 'none';
+    if (list) list.innerHTML = '';
+    return;
+  }
+
+  groupsMeta = {};
+
+  dense.forEach((cluster, idx) => {
+    const gKey = `cluster_zone_${idx + 1}`;
+    const color = PALETTE[idx % PALETTE.length];
+    const label = `Zone ${idx + 1} (${cluster.length} adresses)`;
+    groupsMeta[gKey] = { color, shape: SHAPES[idx % SHAPES.length], displayLabel: label };
+
+    cluster.forEach(p => {
+      p.group = gKey;
+      if (p.marker) {
+        p.marker.setIcon(iconFor(gKey));
+        p.marker.setPopupContent(popupHtml(p));
       }
+    });
+
+    const pts = cluster.map(p => [p.lat, p.lon]);
+    let shapeLayer = null;
+
+    if (cluster.length === 2) {
+      // 2 points : Enveloppe circulaire protectrice
+      const midLat = (cluster[0].lat + cluster[1].lat) / 2;
+      const midLon = (cluster[0].lon + cluster[1].lon) / 2;
+      const d = haversineDist(cluster[0].lat, cluster[0].lon, cluster[1].lat, cluster[1].lon);
+      const radius = Math.max(300, (d / 2) + Math.max(200, maxDist * 0.15));
+
+      shapeLayer = L.circle([midLat, midLon], {
+        radius: radius,
+        color: color,
+        fillColor: color,
+        fillOpacity: 0.18,
+        weight: 2.5,
+        dashArray: '5, 5'
+      }).addTo(clusterLayer);
+    } else {
+      // 3+ points : Polygone d'enveloppe convexe dilaté
+      const hullPts = computeConvexHull(pts);
+      const cLat = pts.reduce((acc, p) => acc + p[0], 0) / pts.length;
+      const cLon = pts.reduce((acc, p) => acc + p[1], 0) / pts.length;
+
+      // Dilate légèrement les sommets pour que les marqueurs ne soient pas au bord
+      const bufferedHull = hullPts.map(p => {
+        const dLat = p[0] - cLat;
+        const dLon = p[1] - cLon;
+        return [p[0] + dLat * 0.18, p[1] + dLon * 0.18];
+      });
+
+      shapeLayer = L.polygon(bufferedHull, {
+        color: color,
+        fillColor: color,
+        fillOpacity: 0.18,
+        weight: 2.5,
+        dashArray: '5, 5'
+      }).addTo(clusterLayer);
+    }
+
+    if (shapeLayer) {
+      shapeLayer.bindTooltip(`<strong>Zone ${idx + 1}</strong> (${cluster.length} points)<br><em>Cliquer pour ouvrir la liste</em>`, { sticky: true });
+      shapeLayer.on('click', () => openZoneModal(`Zone de concentration ${idx + 1}`, cluster));
+    }
+
+    detectedClusters.push({
+      id: gKey,
+      name: `Zone de concentration ${idx + 1}`,
+      points: cluster,
+      color: color,
+      layer: shapeLayer
     });
   });
 
-  // ---------- Export ----------
-  document.getElementById('exportPrint').addEventListener('click', () => {
-    window.print();
-  });
+  if (summary) summary.textContent = `✓ ${dense.length} zone(s) de concentration détectée(s) et tracée(s) sur la carte (écart max : ${formatDist(maxDist)}).`;
 
-  document.getElementById('exportCsv').addEventListener('click', () => {
-    if(!entries.length){
-      statusEl.textContent = 'Rien à exporter.';
-      return;
-    }
-    const rows = [['Adresse','Groupe','Libellé','Statut','Latitude','Longitude']];
-    entries.forEach(en => {
-      rows.push([
-        en.address,
-        groupsMeta[en.group] ? groupsMeta[en.group].displayLabel : en.group,
-        en.label,
-        en.status === 'ok' ? 'placée' : 'échec',
-        en.lat != null ? en.lat : '',
-        en.lon != null ? en.lon : ''
-      ]);
-    });
-    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(';')).join('\n');
-    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'points-carte.csv';
-    a.click();
-    URL.revokeObjectURL(url);
-  });
+  // Affiche la liste des zones dans le panneau avec boutons Zoom, Liste et Impression
+  if (container && list) {
+    container.style.display = 'flex';
+    list.innerHTML = detectedClusters.map((cz, i) => `
+      <div class="zone-card" style="border-left:4px solid ${cz.color};">
+        <div style="min-width:0; flex:1;">
+          <div class="zone-card-title">Zone ${i + 1} (${cz.points.length} adresses)</div>
+          <div class="zone-card-sub">Densité à moins de ${formatDist(maxDist)}</div>
+        </div>
+        <div style="display:flex; gap:4px;">
+          <button type="button" class="secondary" onclick="zoomToClusterZone(${i})" title="Recentrer">🎯</button>
+          <button type="button" class="secondary" onclick="openClusterModal(${i})" title="Voir les points">📋</button>
+          <button type="button" class="primary-marron" onclick="printClusterZone(${i})" style="padding:2px 6px; font-size:0.74rem;" title="Imprimer cette zone">🖨️</button>
+        </div>
+      </div>
+    `).join('');
+  }
 
   renderLegend();
+  updateExportSelect();
+}
 
-  // ---------- Enregistrement du service worker (PWA) ----------
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('service-worker.js').catch(() => {
-        // L'app fonctionne quand même sans service worker, simplement sans mise en cache.
-      });
+window.zoomToClusterZone = function(idx) {
+  const cz = detectedClusters[idx];
+  if (cz && cz.layer) {
+    map.fitBounds(cz.layer.getBounds().pad(0.2));
+  }
+};
+
+window.openClusterModal = function(idx) {
+  const cz = detectedClusters[idx];
+  if (cz) {
+    openZoneModal(`Zone de concentration ${idx + 1}`, cz.points);
+  }
+};
+
+window.printClusterZone = function(idx) {
+  const cz = detectedClusters[idx];
+  if (!cz) return;
+  const bounds = cz.layer ? cz.layer.getBounds() : null;
+  preparePrintReport({
+    title: `Zone de Concentration ${idx + 1}`,
+    subtitle: `${cz.points.length} adresse(s) à forte densité géographique`,
+    points: cz.points,
+    bounds: bounds
+  });
+};
+
+function clearDistanceClustering() {
+  clusterLayer.clearLayers();
+  detectedClusters = [];
+  entries.forEach(en => {
+    en.group = en.originalGroup || 'Groupe 1';
+    if (en.marker) {
+      en.marker.setIcon(iconFor(en.group));
+      en.marker.setPopupContent(popupHtml(en));
+    }
+  });
+  const summary = document.getElementById('clusterSummaryTxt');
+  const container = document.getElementById('clusterZonesListContainer');
+  if (summary) summary.textContent = 'Zones de concentration effacées.';
+  if (container) container.style.display = 'none';
+  renderLegend();
+  updateExportSelect();
+}
+
+document.getElementById('btnRunClustering')?.addEventListener('click', applyDistanceClustering);
+document.getElementById('btnClearClustering')?.addEventListener('click', clearDistanceClustering);
+
+document.getElementById('clusterDistSlider')?.addEventListener('input', (e) => {
+  const val = parseInt(e.target.value, 10);
+  document.getElementById('clusterDistTxt').textContent = formatDist(val);
+  document.querySelectorAll('#cardClustering .dist-pill').forEach(p => {
+    p.classList.toggle('active', parseInt(p.dataset.cdist, 10) === val);
+  });
+});
+
+document.querySelectorAll('#cardClustering .dist-pill').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const d = parseInt(btn.dataset.cdist, 10);
+    document.getElementById('clusterDistSlider').value = d;
+    document.getElementById('clusterDistTxt').textContent = formatDist(d);
+    document.querySelectorAll('#cardClustering .dist-pill').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    applyDistanceClustering();
+  });
+});
+
+// =========================================================================
+// LÉGENDE & PERSONNALISATION
+// =========================================================================
+function renderLegend() {
+  const el = document.getElementById('legendList');
+  const printEl = document.getElementById('legendPrint');
+  if (!el) return;
+
+  const keys = Object.keys(groupsMeta);
+  if (!keys.length) {
+    el.innerHTML = '<span class="hint">Placez des adresses pour faire apparaître la légende.</span>';
+    if (printEl) printEl.innerHTML = '';
+    return;
+  }
+
+  el.innerHTML = keys.map(key => {
+    const meta = groupsMeta[key];
+    const count = entries.filter(e => e.group === key && e.marker).length;
+    return `
+      <div class="legend-item" data-group="${key}">
+        <span class="swatch">${shapeSvg(meta.shape, meta.color)}</span>
+        <select class="shape-select" onchange="updateGroupShape('${key}', this.value)">
+          ${SHAPES.map(s => `<option value="${s}" ${s === meta.shape ? 'selected' : ''}>${s}</option>`).join('')}
+        </select>
+        <input type="color" value="${meta.color}" onchange="updateGroupColor('${key}', this.value)">
+        <input type="text" value="${escAttr(meta.displayLabel)}" onchange="updateGroupLabel('${key}', this.value)">
+        <span class="legend-count-pill">${count} pt${count > 1 ? 's' : ''}</span>
+        <button type="button" class="legend-zoom-btn" onclick="zoomToGroup('${key}')" title="Recentrer sur ce groupe">🎯</button>
+        <button type="button" class="legend-list-btn" onclick="listPointsByGroup('${key}')" title="Voir les points">📋</button>
+      </div>
+    `;
+  }).join('');
+
+  if (printEl) {
+    printEl.innerHTML = `<strong>Légende de la carte :</strong>` + keys.map(k => {
+      const m = groupsMeta[k];
+      const count = entries.filter(e => e.group === k && e.marker).length;
+      return `<div style="display:flex; align-items:center; gap:6px; margin:3px 0;">
+        <span>${shapeSvg(m.shape, m.color)}</span>
+        <span><strong>${escAttr(m.displayLabel)}</strong> (${count} adresses)</span>
+      </div>`;
+    }).join('');
+  }
+}
+
+window.updateGroupShape = function(key, val) {
+  if (groupsMeta[key]) {
+    groupsMeta[key].shape = val;
+    entries.filter(e => e.group === key && e.marker).forEach(e => e.marker.setIcon(iconFor(key)));
+    renderLegend();
+  }
+};
+window.updateGroupColor = function(key, val) {
+  if (groupsMeta[key]) {
+    groupsMeta[key].color = val;
+    entries.filter(e => e.group === key && e.marker).forEach(e => e.marker.setIcon(iconFor(key)));
+    renderLegend();
+  }
+};
+window.updateGroupLabel = function(key, val) {
+  if (groupsMeta[key]) {
+    groupsMeta[key].displayLabel = val.trim() || key;
+    renderLegend();
+  }
+};
+window.zoomToGroup = function(key) {
+  const grp = entries.filter(e => e.group === key && e.marker);
+  if (!grp.length) return;
+  const fg = L.featureGroup(grp.map(e => e.marker));
+  map.fitBounds(fg.getBounds().pad(0.2));
+};
+window.listPointsByGroup = function(key) {
+  const meta = groupsMeta[key] || { displayLabel: key };
+  const grp = entries.filter(e => e.group === key && e.marker);
+  openZoneModal(`Groupe : ${meta.displayLabel}`, grp);
+};
+
+// Libellés sur la carte
+document.getElementById('btnToggleMapLabels')?.addEventListener('click', () => {
+  showLabels = !showLabels;
+  const btn = document.getElementById('btnToggleMapLabels');
+  btn.textContent = showLabels ? 'Masquer les libellés sur la carte' : 'Afficher les libellés sur la carte';
+  btn.classList.toggle('active-btn', showLabels);
+  entries.filter(e => e.marker).forEach(e => {
+    if (showLabels) {
+      e.marker.bindTooltip(e.label, { permanent: true, direction: 'right', offset: [10, 0], className: 'map-label' }).openTooltip();
+    } else {
+      e.marker.unbindTooltip();
+    }
+  });
+});
+
+// =========================================================================
+// MODALE UNIVERSELLE : LISTE DES POINTS D'UNE ZONE
+// =========================================================================
+let currentModalPoints = [];
+let currentModalTitle = '';
+let currentModalCenter = null;
+
+function openZoneModal(title, points, centerCoords = null) {
+  currentModalTitle = title || 'Zone';
+  currentModalPoints = points || [];
+  currentModalCenter = centerCoords;
+
+  const modal = document.getElementById('zonePointsModal');
+  if (!modal) return;
+
+  document.getElementById('modalZoneTitle').textContent = currentModalTitle;
+  document.getElementById('modalZoneSubtitle').textContent = `${currentModalPoints.length} adresse${currentModalPoints.length > 1 ? 's' : ''} enregistrée(s)`;
+  document.getElementById('modalSearchInput').value = '';
+
+  renderModalList('');
+  modal.style.display = 'flex';
+}
+
+function closeZoneModal() {
+  const modal = document.getElementById('zonePointsModal');
+  if (modal) modal.style.display = 'none';
+}
+
+document.getElementById('modalCloseBtn')?.addEventListener('click', closeZoneModal);
+document.getElementById('modalDoneBtn')?.addEventListener('click', closeZoneModal);
+document.getElementById('zonePointsModal')?.addEventListener('click', (e) => {
+  if (e.target.id === 'zonePointsModal') closeZoneModal();
+});
+
+document.getElementById('modalSearchInput')?.addEventListener('input', (e) => {
+  renderModalList(e.target.value);
+});
+
+function renderModalList(query = '') {
+  const container = document.getElementById('modalPointsContainer');
+  if (!container) return;
+  const q = query.trim().toLowerCase();
+
+  const filtered = currentModalPoints.filter(p => {
+    if (!q) return true;
+    return (p.label || '').toLowerCase().includes(q) || (p.address || '').toLowerCase().includes(q);
+  });
+
+  if (!filtered.length) {
+    container.innerHTML = '<div style="text-align:center; padding:20px; font-size:0.80rem; color:var(--text-muted);">Aucune adresse trouvée dans cette zone.</div>';
+    return;
+  }
+
+  container.innerHTML = filtered.map((p, idx) => {
+    let distHtml = '';
+    if (currentModalCenter && p.lat != null && p.lon != null) {
+      const d = haversineDist(currentModalCenter.lat, currentModalCenter.lon, p.lat, p.lon);
+      distHtml = `<span class="zone-point-dist">📍 à ${formatDist(d)} du centre</span>`;
+    }
+    return `
+      <div class="zone-point-item">
+        <span class="zone-point-idx">${idx + 1}</span>
+        <div class="zone-point-info">
+          <div class="zone-point-title">${escAttr(p.label)}</div>
+          <div class="zone-point-addr">${escAttr(p.address)}</div>
+          ${distHtml}
+        </div>
+        <button type="button" class="secondary" onclick="zoomToModalPoint(${p.id})" style="padding:4px 8px; font-size:0.75rem; white-space:nowrap;">🎯 Voir</button>
+      </div>
+    `;
+  }).join('');
+}
+
+window.zoomToModalPoint = function(id) {
+  const pt = entries.find(e => e.id === id && e.marker);
+  if (pt) {
+    closeZoneModal();
+    map.setView([pt.lat, pt.lon], 16);
+    pt.marker.openPopup();
+  }
+};
+
+// Copier dans le presse-papier
+document.getElementById('modalCopyBtn')?.addEventListener('click', () => {
+  if (!currentModalPoints.length) return;
+  const lines = [`Liste des adresses — ${currentModalTitle} (${currentModalPoints.length} points) :`];
+  currentModalPoints.forEach((p, idx) => {
+    lines.push(`${idx + 1}. ${p.label} - ${p.address}`);
+  });
+  navigator.clipboard.writeText(lines.join('\n')).then(() => {
+    alert(`✓ ${currentModalPoints.length} adresse(s) copiée(s) dans le presse-papier.`);
+  });
+});
+
+// Exporter la liste de la modale en CSV
+document.getElementById('modalExportCsvBtn')?.addEventListener('click', () => {
+  if (!currentModalPoints.length) return;
+  const rows = [['Numéro', 'Libellé', 'Adresse', 'Zone', 'Latitude', 'Longitude']];
+  currentModalPoints.forEach((p, idx) => {
+    rows.push([idx + 1, p.label, p.address, currentModalTitle, p.lat || '', p.lon || '']);
+  });
+  downloadCsv(rows, 'points_' + currentModalTitle.toLowerCase().replace(/[^a-z0-9]/g, '_'));
+});
+
+// =========================================================================
+// EXPORT SÉLECTIF (TOUT, PAR ZONE, OU RECTANGLE INTERACTIF SUR LA CARTE)
+// =========================================================================
+// =========================================================================
+// EXPORT SÉLECTIF (TOUT, TERRITOIRE, PAR ZONE, OU CADRE RECTANGULAIRE)
+// =========================================================================
+function updateExportSelect() {
+  const terrGroup = document.getElementById('exportTerritoriesOptGroup');
+  const group = document.getElementById('exportZonesOptGroup');
+  if (!group) return;
+
+  // 1. Territoire administratif actif
+  if (terrGroup) {
+    if (activeFocusFeature) {
+      const nom = activeFocusFeature.properties.nom || activeFocusFeature.properties.nom_region || 'Territoire';
+      const code = activeFocusFeature.properties.code || '';
+      terrGroup.innerHTML = `<option value="territory_active">🏛️ Territoire actif : ${escAttr(nom)} (${code})</option>`;
+    } else {
+      terrGroup.innerHTML = '<option value="" disabled>Aucun territoire sélectionné (voir section 2)</option>';
+    }
+  }
+
+  const opts = [];
+
+  // 2. Zones de concentration détectées
+  if (detectedClusters.length) {
+    detectedClusters.forEach(cz => {
+      opts.push(`<option value="cluster_${cz.id}">🎯 ${escAttr(cz.name)} (${cz.points.length} pts)</option>`);
     });
   }
-</script>
 
+  // 3. Zones Radiales créées
+  customRadialZones.forEach(z => {
+    opts.push(`<option value="rad_${z.id}">📍 Zone Radiale : ${escAttr(z.name)} (${z.points.length} pts)</option>`);
+  });
+
+  // 4. Groupes de la légende
+  Object.keys(groupsMeta).forEach(k => {
+    const c = entries.filter(e => e.group === k && e.marker).length;
+    opts.push(`<option value="group_${k}">🏷️ Catégorie : ${escAttr(groupsMeta[k].displayLabel)} (${c} pts)</option>`);
+  });
+
+  group.innerHTML = opts.join('');
+}
+
+document.getElementById('exportScopeSelect')?.addEventListener('change', (e) => {
+  const val = e.target.value;
+  const boxCtrl = document.getElementById('exportBoxControl');
+  if (boxCtrl) boxCtrl.style.display = val === 'box' ? 'block' : 'none';
+  if (val !== 'box' && exportBox) {
+    exportBoxLayer.clearLayers();
+    exportBox = null;
+  }
+});
+
+// Tracé interactif du rectangle d'export sur la carte
+document.getElementById('btnDrawExportBox')?.addEventListener('click', () => {
+  if (isDrawingExportBox) return;
+  isDrawingExportBox = true;
+  map.getContainer().classList.add('map-crosshair-mode');
+  
+  // Désactive temporairement le déplacement de carte pour permettre le tracé au clic-glisser
+  map.dragging.disable();
+  map.touchZoom.disable();
+  map.doubleClickZoom.disable();
+  map.boxZoom.disable();
+
+  document.getElementById('exportBoxInfo').textContent = '👉 Cliquez et glissez, ou cliquez sur 2 coins opposés.';
+
+  let startLatLng = null;
+  let tempRect = null;
+  let clickCount = 0;
+
+  const cleanupDrawing = () => {
+    map.off('mousemove', onMouseMove);
+    map.off('mouseup', onMouseUp);
+    map.off('click', onMapClick);
+    map.getContainer().classList.remove('map-crosshair-mode');
+    map.dragging.enable();
+    map.touchZoom.enable();
+    map.doubleClickZoom.enable();
+    map.boxZoom.enable();
+    isDrawingExportBox = false;
+  };
+
+  const finalizeBox = (bounds) => {
+    cleanupDrawing();
+    exportBoxLayer.clearLayers();
+
+    exportBox = L.rectangle(bounds, {
+      color: '#6b21a8',
+      weight: 2.5,
+      dashArray: '5, 5',
+      fillColor: '#c59b27',
+      fillOpacity: 0.18
+    }).addTo(exportBoxLayer);
+
+    const inside = entries.filter(pt => pt.lat != null && pt.lon != null && bounds.contains([pt.lat, pt.lon]));
+    const wKm = (haversineDist(bounds.getSouth(), bounds.getWest(), bounds.getSouth(), bounds.getEast()) / 1000).toFixed(1);
+    const hKm = (haversineDist(bounds.getSouth(), bounds.getWest(), bounds.getNorth(), bounds.getWest()) / 1000).toFixed(1);
+
+    document.getElementById('exportBoxInfo').textContent = `✓ Cadre : ${wKm} × ${hKm} km · ${inside.length} point(s) inclus.`;
+    const actions = document.getElementById('exportBoxActions');
+    if (actions) actions.style.display = 'flex';
+  };
+
+  const onMouseMove = (e) => {
+    if (!startLatLng) return;
+    const bounds = L.latLngBounds(startLatLng, e.latlng);
+    if (!tempRect) {
+      tempRect = L.rectangle(bounds, {
+        color: '#6b21a8',
+        weight: 2,
+        dashArray: '4, 4',
+        fillColor: '#c59b27',
+        fillOpacity: 0.12
+      }).addTo(exportBoxLayer);
+    } else {
+      tempRect.setBounds(bounds);
+    }
+  };
+
+  const onMouseUp = (e) => {
+    if (!startLatLng) return;
+    const distPx = map.latLngToLayerPoint(startLatLng).distanceTo(map.latLngToLayerPoint(e.latlng));
+    if (distPx > 15) {
+      // Déplacement suffisant : drag & drop complété
+      finalizeBox(L.latLngBounds(startLatLng, e.latlng));
+    }
+  };
+
+  const onMapClick = (e) => {
+    clickCount++;
+    if (clickCount === 1) {
+      startLatLng = e.latlng;
+      map.on('mousemove', onMouseMove);
+      map.on('mouseup', onMouseUp);
+      document.getElementById('exportBoxInfo').textContent = '👉 Cliquez maintenant sur le coin opposé pour fermer le cadre.';
+    } else if (clickCount >= 2) {
+      if (startLatLng) {
+        finalizeBox(L.latLngBounds(startLatLng, e.latlng));
+      }
+    }
+  };
+
+  map.on('click', onMapClick);
+});
+
+// Bouton Effacer le cadre
+document.getElementById('btnClearExportBox')?.addEventListener('click', () => {
+  exportBoxLayer.clearLayers();
+  exportBox = null;
+  document.getElementById('exportBoxInfo').textContent = 'Cliquez sur 2 points de la carte pour définir les coins opposés.';
+  const actions = document.getElementById('exportBoxActions');
+  if (actions) actions.style.display = 'none';
+});
+
+// Bouton Recentrer sur le cadre
+document.getElementById('btnZoomToBox')?.addEventListener('click', () => {
+  if (exportBox) {
+    map.fitBounds(exportBox.getBounds().pad(0.1));
+  }
+});
+
+function getPointsForSelectedExportScope() {
+  const scope = document.getElementById('exportScopeSelect')?.value || 'all';
+
+  if (scope === 'all') {
+    return { title: 'Carte complète', points: entries.filter(e => e.marker) };
+  }
+  if (scope === 'box') {
+    if (!exportBox) {
+      alert('Veuillez d\'abord tracer un cadre d\'emprise sur la carte.');
+      return null;
+    }
+    const bounds = exportBox.getBounds();
+    const pts = entries.filter(e => e.lat != null && e.lon != null && bounds.contains([e.lat, e.lon]));
+    return { title: 'Zone Cadre Sélectionné', points: pts, bounds };
+  }
+  if (scope === 'territory_active') {
+    if (!activeFocusFeature) {
+      alert('Aucun territoire n\'est actuellement sélectionné.');
+      return null;
+    }
+    const nom = activeFocusFeature.properties.nom || activeFocusFeature.properties.nom_region || 'Territoire';
+    const pts = countPointsInGeoJsonFeature(activeFocusFeature);
+    const bounds = L.geoJSON(activeFocusFeature).getBounds();
+    return { title: `Territoire : ${nom}`, points: pts, bounds };
+  }
+  if (scope.startsWith('cluster_')) {
+    const cid = scope.replace('cluster_', '');
+    const cz = detectedClusters.find(c => c.id === cid);
+    if (cz) {
+      return { title: cz.name, points: cz.points, bounds: cz.layer ? cz.layer.getBounds() : null };
+    }
+  }
+  if (scope.startsWith('group_')) {
+    const k = scope.replace('group_', '');
+    const meta = groupsMeta[k] || { displayLabel: k };
+    const pts = entries.filter(e => e.group === k && e.marker);
+    return { title: meta.displayLabel, points: pts };
+  }
+  if (scope.startsWith('rad_')) {
+    const zid = scope.replace('rad_', '');
+    const z = customRadialZones.find(item => item.id === zid);
+    if (z) return { title: z.name, points: z.points, bounds: z.circleLayer.getBounds() };
+  }
+  return { title: 'Carte', points: entries.filter(e => e.marker) };
+}
+
+// Générateur universel de rapport d'impression (Carte + Tableau de données)
+function preparePrintReport({ title, subtitle, points = [], bounds = null }) {
+  const titleEl = document.getElementById('printReportTitle');
+  const subtEl = document.getElementById('printReportSubtitle');
+  const countEl = document.getElementById('printReportCount');
+  const dateEl = document.getElementById('printReportDate');
+  const tableCont = document.getElementById('printTableContainer');
+  const legendEl = document.getElementById('legendPrint');
+
+  if (titleEl) titleEl.textContent = title || 'Rapport Cartographique';
+  if (subtEl) subtEl.textContent = subtitle || '';
+  if (countEl) countEl.textContent = `${points.length} adresse${points.length > 1 ? 's' : ''}`;
+  if (dateEl) {
+    dateEl.textContent = new Date().toLocaleDateString('fr-FR', {
+      year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+  }
+
+  // Tableau détaillé des points
+  if (tableCont) {
+    if (!points.length) {
+      tableCont.innerHTML = '<div style="padding:12px; font-style:italic; color:#666;">Aucune adresse enregistrée dans ce périmètre.</div>';
+    } else {
+      tableCont.innerHTML = `
+        <h3 style="margin:14px 0 6px 0; font-family:Georgia,serif; font-size:12pt; color:#382012;">
+          Inventaire des adresses du périmètre (${points.length}) :
+        </h3>
+        <table class="print-table">
+          <thead>
+            <tr>
+              <th style="width:36px; text-align:center;">N°</th>
+              <th>Libellé</th>
+              <th>Adresse</th>
+              <th>Catégorie / Groupe</th>
+              <th>Coordonnées GPS</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${points.map((p, idx) => `
+              <tr>
+                <td style="text-align:center; font-weight:bold;">${idx + 1}</td>
+                <td><strong>${escAttr(p.label || 'Point')}</strong></td>
+                <td>${escAttr(p.address || '')}</td>
+                <td>${escAttr(groupsMeta[p.group] ? groupsMeta[p.group].displayLabel : (p.group || 'Défaut'))}</td>
+                <td style="font-family:monospace; font-size:8.5pt;">${p.lat != null ? p.lat.toFixed(4) : ''}, ${p.lon != null ? p.lon.toFixed(4) : ''}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+  }
+
+  // Légende
+  if (legendEl) {
+    const keys = Object.keys(groupsMeta);
+    if (keys.length) {
+      legendEl.innerHTML = `<strong>Légende :</strong><div style="display:flex; flex-wrap:wrap; gap:12px; margin-top:4px;">` +
+        keys.map(k => {
+          const m = groupsMeta[k];
+          const c = points.filter(p => p.group === k).length;
+          return `<div style="display:flex; align-items:center; gap:5px;">
+            <span>${shapeSvg(m.shape, m.color)}</span>
+            <span><strong>${escAttr(m.displayLabel)}</strong> (${c})</span>
+          </div>`;
+        }).join('') + `</div>`;
+    }
+  }
+
+  if (bounds) {
+    map.fitBounds(bounds.pad(0.08), { animate: false });
+  }
+  map.invalidateSize();
+
+  setTimeout(() => {
+    window.print();
+  }, 400);
+}
+
+// Bouton Imprimer / PDF depuis la section Export
+document.getElementById('btnExportPrint')?.addEventListener('click', () => {
+  const exp = getPointsForSelectedExportScope();
+  if (!exp) return;
+  preparePrintReport({
+    title: exp.title,
+    subtitle: `${exp.points.length} adresse(s) incluse(s) dans la sélection`,
+    points: exp.points,
+    bounds: exp.bounds
+  });
+});
+
+// Téléchargement Image PNG
+document.getElementById('btnExportImage')?.addEventListener('click', () => {
+  const exp = getPointsForSelectedExportScope();
+  if (!exp) return;
+
+  if (exp.bounds) map.fitBounds(exp.bounds.pad(0.1));
+
+  const mapEl = document.getElementById('map');
+  html2canvas(mapEl, {
+    useCORS: true,
+    allowTaint: true,
+    logging: false
+  }).then(canvas => {
+    const link = document.createElement('a');
+    link.download = `carte_${exp.title.toLowerCase().replace(/[^a-z0-9]/g, '_')}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  }).catch(() => {
+    alert('Export image : utilisez l\'impression PDF pour enregistrer la carte en haute résolution.');
+  });
+});
+
+// Export CSV filtré
+document.getElementById('btnExportCsv')?.addEventListener('click', () => {
+  const exp = getPointsForSelectedExportScope();
+  if (!exp) return;
+  if (!exp.points.length) {
+    alert('Aucun point dans la zone sélectionnée.');
+    return;
+  }
+  const rows = [['Numéro', 'Adresse', 'Groupe', 'Libellé', 'Latitude', 'Longitude']];
+  exp.points.forEach((p, idx) => {
+    rows.push([
+      idx + 1,
+      p.address,
+      groupsMeta[p.group] ? groupsMeta[p.group].displayLabel : p.group,
+      p.label,
+      p.lat || '',
+      p.lon || ''
+    ]);
+  });
+  downloadCsv(rows, 'export_' + exp.title.toLowerCase().replace(/[^a-z0-9]/g, '_'));
+});
+
+function downloadCsv(rows, filename) {
+  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(';')).join('\n');
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${filename}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// =========================================================================
+// COUCHE DES TRANSPORTS EN COMMUN (OVERPASS API AVEC MULTI-MIROIRS)
+// =========================================================================
+let transitActive = false;
+
+const OVERPASS_ENDPOINTS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://maps.mail.ru/osm/tools/overpass/api/interpreter'
+];
+
+document.getElementById('btnToggleTransit')?.addEventListener('click', () => {
+  transitActive = !transitActive;
+  const btn = document.getElementById('btnToggleTransit');
+  const status = document.getElementById('transitStatus');
+  btn.classList.toggle('active-btn', transitActive);
+  btn.textContent = transitActive ? '✕ Masquer les stations' : 'Afficher les stations (Métro, RER, Tram, Train, Bus)';
+
+  if (transitActive) {
+    transitLayer.addTo(map);
+    fetchTransitStations();
+  } else {
+    transitLayer.clearLayers();
+    map.removeLayer(transitLayer);
+    if (status) status.textContent = '';
+  }
+});
+
+// Bouton pour centrer automatiquement sur les adresses avant de charger les stations
+document.getElementById('btnZoomToPointsTransit')?.addEventListener('click', () => {
+  const placed = entries.filter(e => e.marker);
+  if (!placed.length) {
+    alert('Aucune adresse placée pour le moment. Chargez des adresses ou zoomez sur une ville.');
+    return;
+  }
+  const group = L.featureGroup(placed.map(p => p.marker));
+  map.fitBounds(group.getBounds().pad(0.3), { maxZoom: 15 });
+  if (!transitActive) {
+    document.getElementById('btnToggleTransit')?.click();
+  } else {
+    fetchTransitStations();
+  }
+});
+
+let transitDebounceTimer = null;
+map.on('moveend', () => {
+  if (!transitActive) return;
+  clearTimeout(transitDebounceTimer);
+  transitDebounceTimer = setTimeout(() => {
+    fetchTransitStations();
+  }, 900);
+});
+
+async function fetchTransitStations() {
+  const status = document.getElementById('transitStatus');
+
+  // Si le niveau de zoom est trop large, l'API OpenStreetMap sature. On restreint le périmètre.
+  const zoom = map.getZoom();
+  if (zoom < 11) {
+    if (status) status.textContent = 'ℹ️ Zoomez davantage sur votre ville (zoom 11+) pour afficher les gares et arrêts.';
+    return;
+  }
+
+  if (status) status.textContent = '⏳ Recherche des stations et gares...';
+
+  const bounds = map.getBounds();
+  const s = bounds.getSouth().toFixed(4);
+  const w = bounds.getWest().toFixed(4);
+  const n = bounds.getNorth().toFixed(4);
+  const e = bounds.getEast().toFixed(4);
+
+  // Requête optimisée ciblant les gares, métros, RER, trams et gares routières
+  const query = `[out:json][timeout:9];
+  (
+    node["railway"="station"](${s},${w},${n},${e});
+    node["railway"="tram_stop"](${s},${w},${n},${e});
+    node["station"="subway"](${s},${w},${n},${e});
+    node["amenity"="bus_station"](${s},${w},${n},${e});
+  );
+  out body 160 qt;`;
+
+  let success = false;
+
+  for (const endpoint of OVERPASS_ENDPOINTS) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8500);
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'data=' + encodeURIComponent(query),
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+
+      if (!res.ok) continue;
+      const data = await res.json();
+      if (!data || !Array.isArray(data.elements)) continue;
+
+      transitLayer.clearLayers();
+
+      data.elements.forEach(node => {
+        const name = (node.tags && (node.tags.name || node.tags['station:name'])) || 'Station de transport';
+        const type = node.tags?.railway || node.tags?.station || node.tags?.amenity || 'station';
+
+        let iconEmoji = '🚇';
+        let fillColor = '#6d28d9';
+        if (type === 'station') { iconEmoji = '🚆'; fillColor = '#b45309'; }
+        else if (type === 'tram_stop') { iconEmoji = '🚊'; fillColor = '#059669'; }
+        else if (type === 'bus_station') { iconEmoji = '🚌'; fillColor = '#2563eb'; }
+
+        const m = L.circleMarker([node.lat, node.lon], {
+          radius: 6,
+          fillColor: fillColor,
+          color: '#ffffff',
+          weight: 1.5,
+          fillOpacity: 0.92
+        }).addTo(transitLayer);
+
+        m.bindPopup(`
+          <div style="font-family:sans-serif; min-width:140px;">
+            <strong style="color:${fillColor};">${iconEmoji} ${escAttr(name)}</strong>
+            <div style="font-size:0.75rem; color:#666; margin-top:2px;">Type : ${escAttr(type)}</div>
+            <button type="button" class="primary-marron" onclick="quickCreateRadialFromPoint(${node.lat}, ${node.lon}, '${escAttr(name)}')" style="font-size:0.72rem; padding:4px 8px; margin-top:6px; width:100%;">
+              🎯 Créer une zone de chalandise autour
+            </button>
+          </div>
+        `);
+      });
+
+      if (status) {
+        status.textContent = `✓ ${data.elements.length} station(s) et arrêt(s) affiché(s) sur la carte.`;
+      }
+      success = true;
+      break;
+    } catch (err) {
+      // Essaie le miroir suivant
+      continue;
+    }
+  }
+
+  if (!success && status) {
+    status.textContent = '⚠️ Serveurs de transport temporairement surchargés. Zoomez légèrement pour réduire la zone de recherche.';
+  }
+}
+
+// =========================================================================
+// INITIALISATION AU CHARGEMENT
+// =========================================================================
+window.addEventListener('DOMContentLoaded', () => {
+  initBoundariesSelect();
+  renderLegend();
+  updateExportSelect();
+});
+</script>
 </body>
 </html>
