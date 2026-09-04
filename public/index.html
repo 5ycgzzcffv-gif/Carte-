@@ -38,6 +38,7 @@
     --text-light: #8c786a;
     --line: #ded6c8;
     --line-gold: rgba(197, 155, 39, 0.35);
+    --brick: #a2482f;
     --panelw: 390px;
     --radius-sm: 4px;
     --radius-md: 8px;
@@ -283,33 +284,24 @@
     user-select: none;
     white-space: nowrap;
   }
-  button.primary-marron {
-    background: var(--marron-base);
+  button.primary {
+    background: var(--brick);
     color: #ffffff;
-    border-color: var(--marron-dark);
-    box-shadow: 0 1px 3px rgba(56, 32, 18, 0.2);
+    border-color: #843823;
+    box-shadow: 0 1px 3px rgba(162, 72, 47, 0.25);
   }
-  button.primary-marron:hover {
-    background: var(--marron-dark);
+  button.primary:hover {
+    background: #843823;
   }
-  button.primary-pourpre {
-    background: var(--pourpre-base);
-    color: #ffffff;
-    border-color: var(--pourpre-dark);
-    box-shadow: 0 1px 3px rgba(107, 33, 168, 0.25);
+  button.danger {
+    background: #ffffff;
+    color: #b91c1c;
+    border-color: #fca5a5;
   }
-  button.primary-pourpre:hover {
-    background: var(--pourpre-dark);
-  }
-  button.primary-or {
-    background: linear-gradient(135deg, var(--or-light), var(--or-base));
-    color: var(--marron-dark);
-    border-color: var(--or-dark);
-    font-weight: 800;
-  }
-  button.primary-or:hover {
-    background: var(--or-base);
-    color: #fff;
+  button.danger:hover {
+    background: #fef2f2;
+    color: #991b1b;
+    border-color: #ef4444;
   }
   button.secondary {
     background: var(--bg-panel-alt);
@@ -319,6 +311,15 @@
   button.secondary:hover {
     background: var(--bg-panel-hover);
     border-color: var(--marron-base);
+  }
+  button.secondary.danger {
+    color: #b91c1c;
+    border-color: #fca5a5;
+  }
+  button.secondary.danger:hover {
+    background: #fef2f2;
+    color: #991b1b;
+    border-color: #ef4444;
   }
   button.active-btn {
     background: var(--marron-dark) !important;
@@ -824,7 +825,9 @@
 
 <header>
   <div class="header-brand">
-    <div class="header-logo">📍</div>
+    <div class="header-logo">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 0 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>
+    </div>
     <div>
       <h1>Carte & Territoires</h1>
       <div class="sub">Zones de concentration, contours administratifs & export sélectif</div>
@@ -832,7 +835,7 @@
   </div>
   <div class="header-badges">
     <span id="headerPointsCount" class="header-pill">0 point</span>
-    <button id="headerTogglePanel" class="header-mobile-toggle" type="button">⚙️ Panneau</button>
+    <button id="headerTogglePanel" class="header-mobile-toggle" type="button">Panneau</button>
   </div>
 </header>
 
@@ -845,7 +848,6 @@
       <div class="panel-card active-card" id="cardInput">
         <div class="card-header" onclick="toggleCard('cardInput')">
           <div class="card-header-title">
-            <span class="icon-badge">✍️</span>
             <span>1. Saisie & Import des Adresses</span>
           </div>
           <span class="card-header-arrow">▼</span>
@@ -860,8 +862,8 @@
             <label for="addressesInput">Adresses (1 par ligne : Adresse ; Groupe ; Libellé)</label>
             <textarea id="addressesInput" placeholder="12 rue de la Paix, Paris ; Groupe A ; Siège&#10;Place Bellecour, Lyon ; Groupe B ; Agence&#10;Vieux-Port, Marseille ; Groupe A ; Bureau"></textarea>
             <div class="btn-row">
-              <button id="btnRunManual" class="primary-marron" type="button">📍 Placer sur la carte</button>
-              <button id="btnClearManual" class="secondary" type="button">Effacer</button>
+              <button id="btnRunManual" class="primary" type="button">Placer sur la carte</button>
+              <button id="btnClearManual" class="secondary danger" type="button">Effacer</button>
             </div>
           </div>
 
@@ -882,7 +884,7 @@
                 <select id="mapColLabel"></select>
               </div>
               <div class="btn-row" style="margin-top:4px;">
-                <button id="btnRunExcel" class="primary-marron" type="button">📍 Placer les adresses</button>
+                <button id="btnRunExcel" class="primary" type="button">Placer les adresses</button>
               </div>
             </div>
           </div>
@@ -899,7 +901,6 @@
       <div class="panel-card" id="cardBoundaries">
         <div class="card-header" onclick="toggleCard('cardBoundaries')">
           <div class="card-header-title pourpre">
-            <span class="icon-badge">🌐</span>
             <span>2. Contours & Focus Administratif</span>
           </div>
           <span class="card-header-arrow">▼</span>
@@ -920,10 +921,10 @@
           </div>
 
           <div class="btn-row">
-            <button id="btnToggleAllContours" class="primary-pourpre" type="button">✨ Surbrillance des contours</button>
-            <button id="btnFocusTerritory" class="primary-or" type="button">🎯 Isoler (Focus)</button>
-            <button id="btnPrintTerritory" class="primary-marron" type="button" title="Imprimer la carte du territoire et la liste des adresses">🖨️ Imprimer le territoire</button>
-            <button id="btnClearFocus" class="secondary" type="button" style="display:none;">✕ Annuler le focus</button>
+            <button id="btnToggleAllContours" class="primary" type="button">Surbrillance des contours</button>
+            <button id="btnFocusTerritory" class="primary" type="button">Isoler (Focus)</button>
+            <button id="btnPrintTerritory" class="primary" type="button" title="Imprimer la carte du territoire et la liste des adresses">Imprimer le territoire</button>
+            <button id="btnClearFocus" class="secondary danger" type="button" style="display:none;">✕ Annuler le focus</button>
           </div>
 
           <div id="focusInfoBanner" class="focus-banner" style="display:none;">
@@ -932,8 +933,8 @@
               <div id="focusTerritoryCount">0 point(s) situé(s) dans ce périmètre</div>
             </div>
             <div style="display:flex; gap:4px;">
-              <button id="btnListFocusPoints" class="secondary" type="button" style="padding:4px 8px; font-size:0.74rem;">📋 Liste</button>
-              <button id="btnPrintFocusBanner" class="primary-marron" type="button" style="padding:4px 8px; font-size:0.74rem;">🖨️ Imprimer</button>
+              <button id="btnListFocusPoints" class="secondary" type="button" style="padding:4px 8px; font-size:0.74rem;">Liste</button>
+              <button id="btnPrintFocusBanner" class="primary" type="button" style="padding:4px 8px; font-size:0.74rem;">Imprimer</button>
             </div>
           </div>
         </div>
@@ -943,7 +944,6 @@
       <div class="panel-card" id="cardRadial">
         <div class="card-header" onclick="toggleCard('cardRadial')">
           <div class="card-header-title">
-            <span class="icon-badge">📍</span>
             <span>3. Zone Radiale & Rayon (Sans limite)</span>
           </div>
           <span class="card-header-arrow">▼</span>
@@ -952,10 +952,10 @@
           <div class="hint">Tracez un rayon circulaire personnalisable (de 100 m à 500 km) autour d'une station, adresse ou clic.</div>
 
           <div class="sub-tabs">
-            <button class="sub-tab-btn active" data-type="station" id="rTabStation" type="button">🚇 Station</button>
-            <button class="sub-tab-btn" data-type="address" id="rTabAddress" type="button">🏠 Adresse</button>
-            <button class="sub-tab-btn" data-type="point" id="rTabPoint" type="button">📌 Point</button>
-            <button class="sub-tab-btn" data-type="map" id="rTabMap" type="button">🗺️ Clic carte</button>
+            <button class="sub-tab-btn active" data-type="station" id="rTabStation" type="button">Station</button>
+            <button class="sub-tab-btn" data-type="address" id="rTabAddress" type="button">Adresse</button>
+            <button class="sub-tab-btn" data-type="point" id="rTabPoint" type="button">Point</button>
+            <button class="sub-tab-btn" data-type="map" id="rTabMap" type="button">Clic carte</button>
           </div>
 
           <!-- Choix du centre -->
@@ -977,7 +977,7 @@
           </div>
 
           <div id="rPaneMap" style="display:none;">
-            <button id="radialPickMapBtn" class="secondary" type="button" style="width:100%;">🎯 Cliquer sur la carte pour poser le centre</button>
+            <button id="radialPickMapBtn" class="secondary" type="button" style="width:100%;">Cliquer sur la carte pour poser le centre</button>
           </div>
 
           <!-- Centre Sélectionné -->
@@ -986,7 +986,7 @@
               <div id="radialCenterName" class="zone-card-title">Centre sélectionné</div>
               <div id="radialCenterCoords" class="zone-card-sub">0.0, 0.0</div>
             </div>
-            <button id="radialClearCenterBtn" class="secondary" type="button" style="padding:2px 6px;">✕</button>
+            <button id="radialClearCenterBtn" class="secondary danger" type="button" style="padding:2px 6px;">✕</button>
           </div>
 
           <!-- Rayon & Presets Étendus -->
@@ -1015,7 +1015,7 @@
             <input type="text" id="radialZoneName" placeholder="Ex: Zone Rayon 5 km">
           </div>
 
-          <button id="btnCreateRadialZone" class="primary-or" type="button" style="width:100%;">⚡ Créer la zone & Voir les points</button>
+          <button id="btnCreateRadialZone" class="primary" type="button" style="width:100%;">Créer la zone & Voir les points</button>
 
           <!-- Liste des zones créées -->
           <div id="radialZonesListContainer" style="display:none; flex-direction:column; gap:6px; margin-top:4px;">
@@ -1029,7 +1029,6 @@
       <div class="panel-card" id="cardClustering">
         <div class="card-header" onclick="toggleCard('cardClustering')">
           <div class="card-header-title">
-            <span class="icon-badge">🎯</span>
             <span>4. Zones de Concentration (Densité)</span>
           </div>
           <span class="card-header-arrow">▼</span>
@@ -1051,10 +1050,10 @@
           </div>
 
           <div class="btn-row" style="margin-top:6px;">
-            <button id="btnRunClustering" class="primary-pourpre" type="button" style="width:100%;">⚡ Détecter & Afficher les zones sur la carte</button>
+            <button id="btnRunClustering" class="primary" type="button" style="width:100%;">Détecter & Afficher les zones sur la carte</button>
           </div>
           <div class="btn-row" style="margin-top:2px;">
-            <button id="btnClearClustering" class="secondary" type="button" style="width:100%;">✕ Effacer les zones de densité</button>
+            <button id="btnClearClustering" class="secondary danger" type="button" style="width:100%;">✕ Effacer les zones de densité</button>
           </div>
 
           <div id="clusterSummaryTxt" class="hint" style="font-weight:600; color:var(--text-main); margin-top:4px;"></div>
@@ -1071,13 +1070,12 @@
       <div class="panel-card" id="cardLegend">
         <div class="card-header" onclick="toggleCard('cardLegend')">
           <div class="card-header-title">
-            <span class="icon-badge">🏷️</span>
             <span>5. Légende & Personnalisation</span>
           </div>
           <span class="card-header-arrow">▼</span>
         </div>
         <div class="card-body">
-          <div class="hint">Modifiez les formes, couleurs et noms de groupes, ou cliquez sur 📋 pour lister les adresses de chaque groupe.</div>
+          <div class="hint">Modifiez les formes, couleurs et noms de groupes, ou cliquez sur Liste pour afficher les adresses de chaque groupe.</div>
           <div id="legendList" style="display:flex; flex-direction:column; gap:4px;">
             <span class="hint">Placez des adresses pour faire apparaître la légende.</span>
           </div>
@@ -1091,7 +1089,6 @@
       <div class="panel-card" id="cardTransit">
         <div class="card-header" onclick="toggleCard('cardTransit')">
           <div class="card-header-title">
-            <span class="icon-badge">🚆</span>
             <span>6. Transports en Commun</span>
           </div>
           <span class="card-header-arrow">▼</span>
@@ -1100,7 +1097,7 @@
           <div class="hint">Affiche les arrêts et gares en temps réel autour de votre vue ou de vos adresses.</div>
           <button id="btnToggleTransit" class="secondary" type="button" style="width:100%;">Afficher les stations (Métro, RER, Tram, Train, Bus)</button>
           <div class="btn-row" style="margin-top:4px;">
-            <button id="btnZoomToPointsTransit" class="secondary" type="button" style="width:100%; font-size:0.72rem;">🎯 Centrer sur mes adresses</button>
+            <button id="btnZoomToPointsTransit" class="secondary" type="button" style="width:100%; font-size:0.72rem;">Centrer sur mes adresses</button>
           </div>
           <div id="transitStatus" class="hint" style="margin-top:4px;"></div>
         </div>
@@ -1110,7 +1107,6 @@
       <div class="panel-card" id="cardExport">
         <div class="card-header" onclick="toggleCard('cardExport')">
           <div class="card-header-title pourpre">
-            <span class="icon-badge">📐</span>
             <span>7. Export Sélectif de Zone</span>
           </div>
           <span class="card-header-arrow">▼</span>
@@ -1120,8 +1116,8 @@
 
           <label>Périmètre d'exportation :</label>
           <select id="exportScopeSelect">
-            <option value="all">🌍 Toute la carte (vue actuelle)</option>
-            <option value="box">📐 Cadre rectangulaire tracé sur la carte</option>
+            <option value="all">Toute la carte (vue actuelle)</option>
+            <option value="box">Cadre rectangulaire tracé sur la carte</option>
             <optgroup label="Territoires Administratifs" id="exportTerritoriesOptGroup"></optgroup>
             <optgroup label="Zones & Groupes" id="exportZonesOptGroup"></optgroup>
           </select>
@@ -1129,19 +1125,19 @@
           <div id="exportBoxControl" style="display:none; background:var(--or-bg); border:1px dashed var(--or-base); padding:8px 10px; border-radius:4px; margin-top:6px;">
             <div style="font-size:0.75rem; font-weight:700; color:var(--marron-dark); margin-bottom:4px;">Cadre de sélection d'emprise :</div>
             <div class="btn-row">
-              <button id="btnDrawExportBox" class="primary-or" type="button" style="flex:1; font-size:0.75rem;">✏️ Tracer le cadre</button>
-              <button id="btnClearExportBox" class="secondary" type="button" style="padding:4px 8px; font-size:0.75rem;" title="Supprimer le cadre">✕</button>
+              <button id="btnDrawExportBox" class="primary" type="button" style="flex:1; font-size:0.75rem;">Tracer le cadre</button>
+              <button id="btnClearExportBox" class="secondary danger" type="button" style="padding:4px 8px; font-size:0.75rem;" title="Supprimer le cadre">✕</button>
             </div>
             <div id="exportBoxInfo" class="hint" style="margin-top:4px; font-weight:600;">Cliquez sur 2 points de la carte pour définir les coins opposés.</div>
             <div id="exportBoxActions" style="display:none; margin-top:6px; gap:4px; flex-direction:column;">
-              <button id="btnZoomToBox" class="secondary" type="button" style="font-size:0.72rem; padding:3px 6px;">🎯 Recentrer sur le cadre</button>
+              <button id="btnZoomToBox" class="secondary" type="button" style="font-size:0.72rem; padding:3px 6px;">Recentrer sur le cadre</button>
             </div>
           </div>
 
           <div class="btn-row" style="margin-top:8px;">
-            <button id="btnExportPrint" class="primary-marron" type="button">🖨️ Imprimer / PDF (Carte + Liste)</button>
-            <button id="btnExportImage" class="primary-pourpre" type="button">🖼️ Image PNG</button>
-            <button id="btnExportCsv" class="secondary" type="button">📊 CSV filtré</button>
+            <button id="btnExportPrint" class="primary" type="button">Imprimer / PDF (Carte + Liste)</button>
+            <button id="btnExportImage" class="primary" type="button">Image PNG</button>
+            <button id="btnExportCsv" class="secondary" type="button">CSV filtré</button>
           </div>
         </div>
       </div>
@@ -1155,9 +1151,9 @@
   <!-- Badge Flottant Mode Focus ou Zone -->
   <div id="floatingFocusBadge" class="map-floating-badge" style="display:none;">
     <span id="floatingFocusTitle">Focus Territoire</span>
-    <button id="btnFloatingListPoints" class="primary-pourpre" type="button">📋 Voir points</button>
-    <button id="btnFloatingPrint" class="primary-marron" type="button">🖨️ Imprimer</button>
-    <button id="btnFloatingClearFocus" class="secondary" type="button">✕ Quitter</button>
+    <button id="btnFloatingListPoints" class="primary" type="button">Voir points</button>
+    <button id="btnFloatingPrint" class="primary" type="button">Imprimer</button>
+    <button id="btnFloatingClearFocus" class="secondary danger" type="button">✕ Quitter</button>
   </div>
 </main>
 
@@ -1183,7 +1179,7 @@
     </div>
 
     <div class="zone-modal-search">
-      <input type="text" id="modalSearchInput" placeholder="🔍 Filtrer par libellé ou adresse...">
+      <input type="text" id="modalSearchInput" placeholder="Filtrer par libellé ou adresse...">
     </div>
 
     <div id="modalPointsContainer" class="zone-modal-list">
@@ -1191,9 +1187,9 @@
     </div>
 
     <div class="zone-modal-footer">
-      <button id="modalCopyBtn" class="secondary" type="button">📋 Copier la liste</button>
-      <button id="modalExportCsvBtn" class="secondary" type="button">💾 Télécharger CSV</button>
-      <button id="modalDoneBtn" class="primary-marron" type="button" style="margin-left:auto;">Fermer</button>
+      <button id="modalCopyBtn" class="secondary" type="button">Copier la liste</button>
+      <button id="modalExportCsvBtn" class="secondary" type="button">Télécharger CSV</button>
+      <button id="modalDoneBtn" class="primary" type="button" style="margin-left:auto;">Fermer</button>
     </div>
   </div>
 </div>
@@ -1335,8 +1331,8 @@ function popupHtml(entry) {
         Groupe : ${escAttr(meta.displayLabel)}
       </div>
       <div style="margin-top:8px; border-top:1px solid var(--line); padding-top:6px;">
-        <button type="button" class="primary-marron" onclick="quickCreateRadialFromPoint(${entry.lat}, ${entry.lon}, '${escAttr(entry.label)}')" style="font-size:0.72rem; padding:4px 8px; width:100%;">
-          🎯 Créer une zone autour de ce point
+        <button type="button" class="primary" onclick="quickCreateRadialFromPoint(${entry.lat}, ${entry.lon}, '${escAttr(entry.label)}')" style="font-size:0.72rem; padding:4px 8px; width:100%;">
+          Créer une zone autour de ce point
         </button>
       </div>
     </div>
@@ -1401,7 +1397,7 @@ async function placeAddressList(items) {
     renderLegend();
   }
 
-  if (statusEl) statusEl.textContent = `✓ ${ok}/${items.length} adresse(s) placée(s) avec succès.`;
+  if (statusEl) statusEl.textContent = `${ok}/${items.length} adresse(s) placée(s) avec succès.`;
   updateRadialPointSelect();
 
   const placed = entries.filter(e => e.marker);
@@ -1639,7 +1635,7 @@ document.getElementById('btnToggleAllContours')?.addEventListener('click', async
     renderAllContours();
   } else {
     btn.classList.remove('active-btn');
-    btn.textContent = '✨ Surbrillance des contours';
+    btn.textContent = 'Surbrillance des contours';
     boundariesLayer.clearLayers();
   }
 });
@@ -1697,7 +1693,7 @@ function applyTerritoryFocus(feature) {
 
   document.getElementById('focusTerritoryName').textContent = `${name} (${code})`;
   document.getElementById('focusTerritoryCount').textContent = `${insidePoints.length} adresse(s) dans ce périmètre`;
-  document.getElementById('floatingFocusTitle').textContent = `🎯 Focus : ${name} (${insidePoints.length} pts)`;
+  document.getElementById('floatingFocusTitle').textContent = `Focus : ${name} (${insidePoints.length} pts)`;
 
   if (banner) banner.style.display = 'flex';
   if (floatingBadge) floatingBadge.style.display = 'flex';
@@ -1919,9 +1915,9 @@ function renderRadialZonesList() {
         <div class="zone-card-sub">Rayon : ${formatDist(z.radius)} · ${z.points.length} adresse(s)</div>
       </div>
       <div style="display:flex; gap:4px;">
-        <button type="button" class="secondary" onclick="viewZonePointsById('${z.id}')" title="Lister les points">📋</button>
-        <button type="button" class="secondary" onclick="zoomToZoneById('${z.id}')" title="Recentrer">🎯</button>
-        <button type="button" class="secondary" onclick="deleteRadialZone('${z.id}')" title="Supprimer" style="color:#b91c1c;">🗑️</button>
+        <button type="button" class="secondary" onclick="viewZonePointsById('${z.id}')" title="Lister les points">Liste</button>
+        <button type="button" class="secondary" onclick="zoomToZoneById('${z.id}')" title="Recentrer">Recentrer</button>
+        <button type="button" class="secondary danger" onclick="deleteRadialZone('${z.id}')" title="Supprimer">✕</button>
       </div>
     </div>
   `).join('');
@@ -2142,7 +2138,7 @@ function applyDistanceClustering() {
     });
   });
 
-  if (summary) summary.textContent = `✓ ${dense.length} zone(s) de concentration détectée(s) et tracée(s) sur la carte (écart max : ${formatDist(maxDist)}).`;
+  if (summary) summary.textContent = `${dense.length} zone(s) de concentration détectée(s) et tracée(s) sur la carte (écart max : ${formatDist(maxDist)}).`;
 
   // Affiche la liste des zones dans le panneau avec boutons Zoom, Liste et Impression
   if (container && list) {
@@ -2154,9 +2150,9 @@ function applyDistanceClustering() {
           <div class="zone-card-sub">Densité à moins de ${formatDist(maxDist)}</div>
         </div>
         <div style="display:flex; gap:4px;">
-          <button type="button" class="secondary" onclick="zoomToClusterZone(${i})" title="Recentrer">🎯</button>
-          <button type="button" class="secondary" onclick="openClusterModal(${i})" title="Voir les points">📋</button>
-          <button type="button" class="primary-marron" onclick="printClusterZone(${i})" style="padding:2px 6px; font-size:0.74rem;" title="Imprimer cette zone">🖨️</button>
+          <button type="button" class="secondary" onclick="zoomToClusterZone(${i})" title="Recentrer">Recentrer</button>
+          <button type="button" class="secondary" onclick="openClusterModal(${i})" title="Voir les points">Liste</button>
+          <button type="button" class="primary" onclick="printClusterZone(${i})" style="padding:2px 6px; font-size:0.74rem;" title="Imprimer cette zone">Imprimer</button>
         </div>
       </div>
     `).join('');
@@ -2259,8 +2255,8 @@ function renderLegend() {
         <input type="color" value="${meta.color}" onchange="updateGroupColor('${key}', this.value)">
         <input type="text" value="${escAttr(meta.displayLabel)}" onchange="updateGroupLabel('${key}', this.value)">
         <span class="legend-count-pill">${count} pt${count > 1 ? 's' : ''}</span>
-        <button type="button" class="legend-zoom-btn" onclick="zoomToGroup('${key}')" title="Recentrer sur ce groupe">🎯</button>
-        <button type="button" class="legend-list-btn" onclick="listPointsByGroup('${key}')" title="Voir les points">📋</button>
+        <button type="button" class="legend-zoom-btn" onclick="zoomToGroup('${key}')" title="Recentrer sur ce groupe">Recentrer</button>
+        <button type="button" class="legend-list-btn" onclick="listPointsByGroup('${key}')" title="Voir les points">Liste</button>
       </div>
     `;
   }).join('');
@@ -2381,7 +2377,7 @@ function renderModalList(query = '') {
     let distHtml = '';
     if (currentModalCenter && p.lat != null && p.lon != null) {
       const d = haversineDist(currentModalCenter.lat, currentModalCenter.lon, p.lat, p.lon);
-      distHtml = `<span class="zone-point-dist">📍 à ${formatDist(d)} du centre</span>`;
+      distHtml = `<span class="zone-point-dist">à ${formatDist(d)} du centre</span>`;
     }
     return `
       <div class="zone-point-item">
@@ -2391,7 +2387,7 @@ function renderModalList(query = '') {
           <div class="zone-point-addr">${escAttr(p.address)}</div>
           ${distHtml}
         </div>
-        <button type="button" class="secondary" onclick="zoomToModalPoint(${p.id})" style="padding:4px 8px; font-size:0.75rem; white-space:nowrap;">🎯 Voir</button>
+        <button type="button" class="secondary" onclick="zoomToModalPoint(${p.id})" style="padding:4px 8px; font-size:0.75rem; white-space:nowrap;">Voir</button>
       </div>
     `;
   }).join('');
@@ -2414,7 +2410,7 @@ document.getElementById('modalCopyBtn')?.addEventListener('click', () => {
     lines.push(`${idx + 1}. ${p.label} - ${p.address}`);
   });
   navigator.clipboard.writeText(lines.join('\n')).then(() => {
-    alert(`✓ ${currentModalPoints.length} adresse(s) copiée(s) dans le presse-papier.`);
+    alert(`${currentModalPoints.length} adresse(s) copiée(s) dans le presse-papier.`);
   });
 });
 
@@ -2444,7 +2440,7 @@ function updateExportSelect() {
     if (activeFocusFeature) {
       const nom = activeFocusFeature.properties.nom || activeFocusFeature.properties.nom_region || 'Territoire';
       const code = activeFocusFeature.properties.code || '';
-      terrGroup.innerHTML = `<option value="territory_active">🏛️ Territoire actif : ${escAttr(nom)} (${code})</option>`;
+      terrGroup.innerHTML = `<option value="territory_active">Territoire actif : ${escAttr(nom)} (${code})</option>`;
     } else {
       terrGroup.innerHTML = '<option value="" disabled>Aucun territoire sélectionné (voir section 2)</option>';
     }
@@ -2455,19 +2451,19 @@ function updateExportSelect() {
   // 2. Zones de concentration détectées
   if (detectedClusters.length) {
     detectedClusters.forEach(cz => {
-      opts.push(`<option value="cluster_${cz.id}">🎯 ${escAttr(cz.name)} (${cz.points.length} pts)</option>`);
+      opts.push(`<option value="cluster_${cz.id}">Concentration : ${escAttr(cz.name)} (${cz.points.length} pts)</option>`);
     });
   }
 
   // 3. Zones Radiales créées
   customRadialZones.forEach(z => {
-    opts.push(`<option value="rad_${z.id}">📍 Zone Radiale : ${escAttr(z.name)} (${z.points.length} pts)</option>`);
+    opts.push(`<option value="rad_${z.id}">Zone Radiale : ${escAttr(z.name)} (${z.points.length} pts)</option>`);
   });
 
   // 4. Groupes de la légende
   Object.keys(groupsMeta).forEach(k => {
     const c = entries.filter(e => e.group === k && e.marker).length;
-    opts.push(`<option value="group_${k}">🏷️ Catégorie : ${escAttr(groupsMeta[k].displayLabel)} (${c} pts)</option>`);
+    opts.push(`<option value="group_${k}">Catégorie : ${escAttr(groupsMeta[k].displayLabel)} (${c} pts)</option>`);
   });
 
   group.innerHTML = opts.join('');
@@ -2495,7 +2491,7 @@ document.getElementById('btnDrawExportBox')?.addEventListener('click', () => {
   map.doubleClickZoom.disable();
   map.boxZoom.disable();
 
-  document.getElementById('exportBoxInfo').textContent = '👉 Cliquez et glissez, ou cliquez sur 2 coins opposés.';
+  document.getElementById('exportBoxInfo').textContent = 'Cliquez et glissez, ou cliquez sur 2 coins opposés.';
 
   let startLatLng = null;
   let tempRect = null;
@@ -2529,7 +2525,7 @@ document.getElementById('btnDrawExportBox')?.addEventListener('click', () => {
     const wKm = (haversineDist(bounds.getSouth(), bounds.getWest(), bounds.getSouth(), bounds.getEast()) / 1000).toFixed(1);
     const hKm = (haversineDist(bounds.getSouth(), bounds.getWest(), bounds.getNorth(), bounds.getWest()) / 1000).toFixed(1);
 
-    document.getElementById('exportBoxInfo').textContent = `✓ Cadre : ${wKm} × ${hKm} km · ${inside.length} point(s) inclus.`;
+    document.getElementById('exportBoxInfo').textContent = `Cadre : ${wKm} × ${hKm} km · ${inside.length} point(s) inclus.`;
     const actions = document.getElementById('exportBoxActions');
     if (actions) actions.style.display = 'flex';
   };
@@ -2565,7 +2561,7 @@ document.getElementById('btnDrawExportBox')?.addEventListener('click', () => {
       startLatLng = e.latlng;
       map.on('mousemove', onMouseMove);
       map.on('mouseup', onMouseUp);
-      document.getElementById('exportBoxInfo').textContent = '👉 Cliquez maintenant sur le coin opposé pour fermer le cadre.';
+      document.getElementById('exportBoxInfo').textContent = 'Cliquez maintenant sur le coin opposé pour fermer le cadre.';
     } else if (clickCount >= 2) {
       if (startLatLng) {
         finalizeBox(L.latLngBounds(startLatLng, e.latlng));
@@ -2712,10 +2708,23 @@ function preparePrintReport({ title, subtitle, points = [], bounds = null }) {
   }
   map.invalidateSize();
 
-  setTimeout(() => {
-    window.print();
-  }, 400);
+  // Appel synchrone direct sans setTimeout pour compatibilité stricte Safari / WebKit
+  window.print();
 }
+
+window.addEventListener('beforeprint', () => {
+  document.body.classList.add('is-printing');
+  if (window.map) {
+    map.invalidateSize({ pan: false });
+  }
+});
+
+window.addEventListener('afterprint', () => {
+  document.body.classList.remove('is-printing');
+  if (window.map) {
+    map.invalidateSize({ pan: false });
+  }
+});
 
 // Bouton Imprimer / PDF depuis la section Export
 document.getElementById('btnExportPrint')?.addEventListener('click', () => {
@@ -2837,17 +2846,31 @@ map.on('moveend', () => {
   }, 900);
 });
 
+function transitStationSvg(fillColor) {
+  return `<svg width="18" height="18" viewBox="0 0 18 18" style="display:block;"><circle cx="9" cy="9" r="6.5" fill="${fillColor}" stroke="#ffffff" stroke-width="1.8"/></svg>`;
+}
+
+function transitStationIcon(fillColor) {
+  return L.divIcon({
+    html: transitStationSvg(fillColor),
+    className: '',
+    iconSize: [18, 18],
+    iconAnchor: [9, 9],
+    popupAnchor: [0, -9]
+  });
+}
+
 async function fetchTransitStations() {
   const status = document.getElementById('transitStatus');
 
   // Si le niveau de zoom est trop large, l'API OpenStreetMap sature. On restreint le périmètre.
   const zoom = map.getZoom();
   if (zoom < 11) {
-    if (status) status.textContent = 'ℹ️ Zoomez davantage sur votre ville (zoom 11+) pour afficher les gares et arrêts.';
+    if (status) status.textContent = 'Zoomez davantage sur votre ville (zoom 11+) pour afficher les gares et arrêts.';
     return;
   }
 
-  if (status) status.textContent = '⏳ Recherche des stations et gares...';
+  if (status) status.textContent = 'Recherche des stations et gares...';
 
   const bounds = map.getBounds();
   const s = bounds.getSouth().toFixed(4);
@@ -2890,33 +2913,31 @@ async function fetchTransitStations() {
         const name = (node.tags && (node.tags.name || node.tags['station:name'])) || 'Station de transport';
         const type = node.tags?.railway || node.tags?.station || node.tags?.amenity || 'station';
 
-        let iconEmoji = '🚇';
         let fillColor = '#6d28d9';
-        if (type === 'station') { iconEmoji = '🚆'; fillColor = '#b45309'; }
-        else if (type === 'tram_stop') { iconEmoji = '🚊'; fillColor = '#059669'; }
-        else if (type === 'bus_station') { iconEmoji = '🚌'; fillColor = '#2563eb'; }
+        if (type === 'station') { fillColor = '#b45309'; }
+        else if (type === 'tram_stop') { fillColor = '#059669'; }
+        else if (type === 'bus_station') { fillColor = '#2563eb'; }
 
-        const m = L.circleMarker([node.lat, node.lon], {
-          radius: 6,
-          fillColor: fillColor,
-          color: '#ffffff',
-          weight: 1.5,
-          fillOpacity: 0.92
+        const m = L.marker([node.lat, node.lon], {
+          icon: transitStationIcon(fillColor)
         }).addTo(transitLayer);
 
         m.bindPopup(`
           <div style="font-family:sans-serif; min-width:140px;">
-            <strong style="color:${fillColor};">${iconEmoji} ${escAttr(name)}</strong>
+            <div style="display:flex; align-items:center; gap:6px;">
+              ${transitStationSvg(fillColor)}
+              <strong style="color:${fillColor};">${escAttr(name)}</strong>
+            </div>
             <div style="font-size:0.75rem; color:#666; margin-top:2px;">Type : ${escAttr(type)}</div>
-            <button type="button" class="primary-marron" onclick="quickCreateRadialFromPoint(${node.lat}, ${node.lon}, '${escAttr(name)}')" style="font-size:0.72rem; padding:4px 8px; margin-top:6px; width:100%;">
-              🎯 Créer une zone de chalandise autour
+            <button type="button" class="primary" onclick="quickCreateRadialFromPoint(${node.lat}, ${node.lon}, '${escAttr(name)}')" style="font-size:0.72rem; padding:4px 8px; margin-top:6px; width:100%;">
+              Créer une zone de chalandise autour
             </button>
           </div>
         `);
       });
 
       if (status) {
-        status.textContent = `✓ ${data.elements.length} station(s) et arrêt(s) affiché(s) sur la carte.`;
+        status.textContent = `${data.elements.length} station(s) et arrêt(s) affiché(s) sur la carte.`;
       }
       success = true;
       break;
@@ -2927,7 +2948,7 @@ async function fetchTransitStations() {
   }
 
   if (!success && status) {
-    status.textContent = '⚠️ Serveurs de transport temporairement surchargés. Zoomez légèrement pour réduire la zone de recherche.';
+    status.textContent = 'Serveurs de transport temporairement surchargés. Zoomez légèrement pour réduire la zone de recherche.';
   }
 }
 
